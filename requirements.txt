@@ -1,0 +1,13 @@
+# Web Framework
+Flask==3.0.2
+
+# Database Connection (MySQL / PHPMyAdmin ke liye)
+mysql-connector-python==8.3.0
+PyMySQL==1.1.0
+
+# Data Processing (Exoplanet Archive aur CSV filtering ke liye)
+pandas==2.2.0
+numpy==1.26.4
+
+# Useful standard tools for Flask
+Werkzeug==3.0.1
