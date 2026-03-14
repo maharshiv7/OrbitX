@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OrbitX - CLASSIFIED DATABASE</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+        body {
+            margin: 0;
+            background-color: #050505;
+            color: #00ff41;
+            font-family: 'Share Tech Mono', monospace;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* Scanline Overlay Effect for CRT Monitor feel */
+        .scanlines {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 4px, 3px 100%;
+            z-index: 100; pointer-events: none;
+        }
+
+        header {
+            padding: 20px 40px;
+            border-bottom: 2px solid #00ff41;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #020a04;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.2);
+            z-index: 10;
+        }
+
+        h1 { margin: 0; font-size: 30px; letter-spacing: 5px; text-transform: uppercase; text-shadow: 0 0 10px #00ff41; animation: glitch 3s infinite;}
+        .subtitle { color: #ff4444; font-size: 14px; letter-spacing: 2px; }
+
+        @keyframes glitch {
+            0% { text-shadow: 0 0 10px #00ff41; transform: translate(0); }
+            2% { text-shadow: 2px 0 0 #ff0000, -2px 0 0 #0000ff; transform: translate(-2px, 2px); }
+            4% { text-shadow: 0 0 10px #00ff41; transform: translate(0); }
+            100% { text-shadow: 0 0 10px #00ff41; transform: translate(0); }
+        }
+
+        /* EXIT BUTTON */
+        #exit-btn {
+            color: #ff4444; text-decoration: none; font-size: 16px; font-weight: bold;
+            border: 1px solid #ff4444; padding: 8px 20px; border-radius: 5px;
+            transition: 0.3s; background: rgba(255, 0, 0, 0.1);
+        }
+        #exit-btn:hover { background: #ff4444; color: #000; box-shadow: 0 0 15px #ff4444; }
+
+        .container { display: flex; flex-grow: 1; height: calc(100vh - 85px); }
+
+        /* LEFT MENU: Case Files */
+        .sidebar {
+            width: 300px; border-right: 2px solid #00ff41; background: #020a04;
+            padding: 20px; overflow-y: auto; z-index: 10;
+        }
+        
+        .file-btn {
+            background: transparent; border: 1px solid #00ff41; color: #00ff41;
+            width: 100%; text-align: left; padding: 15px; margin-bottom: 15px;
+            font-family: 'Share Tech Mono', monospace; font-size: 16px;
+            cursor: pointer; transition: 0.2s; position: relative;
+        }
+        .file-btn::before { content: '►'; margin-right: 10px; opacity: 0; }
+        .file-btn:hover, .file-btn.active { background: rgba(0, 255, 65, 0.2); box-shadow: 0 0 10px #00ff41; }
+        .file-btn:hover::before, .file-btn.active::before { opacity: 1; }
+        
+        .status-tag { float: right; font-size: 12px; padding: 2px 6px; border: 1px solid; }
+        .status-red { color: #ff4444; border-color: #ff4444; }
+        .status-yellow { color: #ffdd00; border-color: #ffdd00; }
+
+        /* RIGHT PANEL: The Dossier */
+        .content-panel {
+            flex-grow: 1; padding: 40px; overflow-y: auto; background: #000;
+            position: relative; z-index: 10;
+        }
+
+        #dossier-title { font-size: 35px; color: #fff; border-bottom: 1px dashed #555; padding-bottom: 10px; margin-top: 0;}
+        #dossier-meta { font-size: 14px; color: #888; margin-bottom: 30px; }
+        
+        .report-body { font-size: 18px; line-height: 1.8; color: #ccc; max-width: 800px; }
+        .report-body p { margin-bottom: 20px; }
+
+        /* 🟢 THE REDACTED EFFECT */
+        .redacted {
+            background-color: #fff; color: transparent; padding: 0 5px;
+            cursor: help; transition: all 0.3s ease; user-select: none;
+        }
+        .redacted:hover { background-color: transparent; color: #ff4444; border: 1px dashed #ff4444; }
+
+        #decryption-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; color: #00ff41;
+            font-size: 24px; z-index: 20; opacity: 0; pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        #decryption-layer.active { opacity: 1; pointer-events: auto; }
+
+        @media (max-width: 768px) {
+            .container { flex-direction: column; }
+            .sidebar { width: 100%; height: 200px; border-right: none; border-bottom: 2px solid #00ff41; }
+            .content-panel { padding: 20px; }
+            header { padding: 15px; flex-direction: column; gap: 15px; }
+            h1 { font-size: 22px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="scanlines"></div>
+
+    <header>
+        <div>
+            <h1>OrbitX // BLACK_SITE</h1>
+            <div class="subtitle">RESTRICTED ACCESS LEVEL 5</div>
+        </div>
+        <a href="index.html#menu" id="exit-btn"><i class="fas fa-sign-out-alt"></i> CLOSE TERMINAL</a>
+    </header>
+
+    <div class="container">
+        <div class="sidebar" id="file-list">
+            </div>
+
+        <div class="content-panel">
+            <div id="decryption-layer">
+                <i class="fas fa-unlock-alt" style="font-size: 50px; margin-bottom: 20px; color: #ffdd00;"></i>
+                <div id="decrypt-text">DECRYPTING PACKETS...</div>
+            </div>
+
+            <div id="dossier-content" style="display: none;">
+                <h2 id="dossier-title">Select a File</h2>
+                <div id="dossier-meta"></div>
+                <div class="report-body" id="dossier-body">
+                    Awaiting Agent input. Please select a dossier from the secure left terminal.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let caseFiles = []; // Khali array, data ab backend se aayega
+        const fileList = document.getElementById('file-list');
+
+        // 1. API se Data mangwao
+        fetch('http://127.0.0.1:5000/api/classified')
+            .then(response => response.json())
+            .then(data => {
+                if(data.status === "success") {
+                    caseFiles = data.data; // Server se aayi hui files ko save kar liya
+                    
+                    // Sidebar mein buttons banao
+                    caseFiles.forEach((file, index) => {
+                        const btn = document.createElement('button');
+                        btn.className = 'file-btn';
+                        btn.innerHTML = `${file.title} <span class="status-tag ${file.statusClass}">${file.status}</span>`;
+                        btn.onclick = () => loadDossier(index, btn);
+                        fileList.appendChild(btn);
+                    });
+                }
+            })
+            .catch(error => {
+                fileList.innerHTML = "<p style='color:red;'>[ERROR: UNABLE TO CONNECT TO SECURE SERVER]</p>";
+            });
+
+        // 2. Load Dossier with "Hacker" Effect
+        function loadDossier(index, clickedBtn) {
+            // Highlight active button
+            document.querySelectorAll('.file-btn').forEach(b => b.classList.remove('active'));
+            clickedBtn.classList.add('active');
+
+            const dossier = caseFiles[index];
+            const contentPanel = document.getElementById('dossier-content');
+            const decryptLayer = document.getElementById('decryption-layer');
+            const decryptText = document.getElementById('decrypt-text');
+
+            contentPanel.style.display = 'none';
+            decryptLayer.classList.add('active');
+
+            // Fake decryption animation
+            let chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*";
+            let interval = setInterval(() => {
+                let randomStr = "";
+                for(let i=0; i<15; i++) randomStr += chars.charAt(Math.floor(Math.random() * chars.length));
+                decryptText.innerText = "DECRYPTING: " + randomStr;
+            }, 50);
+
+            // After 1.5 seconds, reveal the actual content
+            setTimeout(() => {
+                clearInterval(interval);
+                decryptLayer.classList.remove('active');
+                contentPanel.style.display = 'block';
+
+                document.getElementById('dossier-title').innerText = dossier.title;
+                document.getElementById('dossier-meta').innerHTML = `<strong>DATE:</strong> ${dossier.date} | <strong>ORIGIN:</strong> ${dossier.origin}`;
+                document.getElementById('dossier-body').innerHTML = dossier.content;
+            }, 1500);
+        }
+    </script>
+</body>
+</html>

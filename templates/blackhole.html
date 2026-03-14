@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OrbitX - Black Hole Simulator</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #010203; /* Pitch black space */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+        }
+
+        #ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        header { padding: 20px 40px; position: absolute; top: 0; width: 100%; }
+        h1 { margin: 0; font-size: 28px; letter-spacing: 3px; color: #ff3333; text-shadow: 0 0 15px rgba(255, 51, 51, 0.8); text-transform: uppercase;}
+        .subtitle { color: #ff9999; font-size: 12px; letter-spacing: 2px; }
+
+        #back-btn {
+            position: absolute; top: 25px; left: 30px; color: #ff3333; text-decoration: none;
+            font-size: 14px; letter-spacing: 1px; border: 1px solid #ff3333; padding: 8px 15px;
+            border-radius: 20px; transition: all 0.3s; pointer-events: auto;
+        }
+        #back-btn:hover { background: #ff3333; color: #000; box-shadow: 0 0 15px #ff3333;}
+
+        /* Left Side: Navigation Menu */
+        #bh-list {
+            margin-top: 100px;
+            margin-left: 30px;
+            width: 250px;
+            pointer-events: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 10;
+        }
+
+        .bh-btn {
+            background: rgba(20, 5, 5, 0.6);
+            border: 1px solid rgba(255, 51, 51, 0.3);
+            color: #ccc;
+            padding: 15px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            text-align: left;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+            backdrop-filter: blur(5px);
+        }
+
+        .bh-btn:hover, .bh-btn.active {
+            background: rgba(255, 51, 51, 0.2);
+            border-color: #ff3333;
+            color: #fff;
+            box-shadow: 0 0 15px rgba(255, 51, 51, 0.4);
+            transform: translateX(10px);
+        }
+
+        /* Right Side: Data Panel */
+        #info-panel {
+            margin-top: 100px;
+            margin-right: 30px;
+            width: 320px;
+            background: rgba(10, 2, 2, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid #ff3333;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 0 30px rgba(255, 51, 51, 0.2);
+            pointer-events: auto;
+            z-index: 10;
+            overflow-y: auto;
+        }
+        
+        #info-panel::-webkit-scrollbar { width: 4px; }
+        #info-panel::-webkit-scrollbar-thumb { background: #ff3333; }
+
+        .bh-title { font-size: 28px; font-weight: bold; color: #fff; text-shadow: 0 0 10px #ff3333; margin-bottom: 5px; text-transform: uppercase;}
+        .bh-type { font-size: 12px; color: #ff6666; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 20px; border-bottom: 1px solid rgba(255,51,51,0.3); padding-bottom: 15px;}
+        
+        .data-row { margin-bottom: 15px; font-size: 14px; line-height: 1.6; color: #ddd; }
+        .data-row strong { color: #ff3333; display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;}
+        
+        .desc-box { background: rgba(255, 51, 51, 0.05); padding: 15px; border-radius: 8px; margin-top: 20px; font-size: 13px; color: #ccc; border-left: 3px solid #ff3333; line-height: 1.6;}
+
+        #instruction {
+            position: absolute; bottom: 20px; width: 100%; text-align: center;
+            color: rgba(255, 51, 51, 0.6); letter-spacing: 2px; font-size: 12px; text-transform: uppercase;
+        }
+
+        /* =========================================
+           📱 MOBILE RESPONSIVE FIX
+           ========================================= */
+        @media (max-width: 768px) {
+            #ui-layer {
+                flex-direction: column;
+                justify-content: flex-start;
+            }
+
+            header { padding: 10px 20px; text-align: center; z-index: 20; position: relative;}
+            h1 { font-size: 22px; margin-top: 35px; } /* Thoda niche kiya back button ki wajah se */
+            .subtitle { font-size: 10px; }
+
+            #back-btn { top: 15px; left: 15px; font-size: 11px; padding: 6px 12px; z-index: 30;}
+
+            /* Horizontal Scrollable Buttons */
+            #bh-list {
+                margin-top: 15px;
+                margin-left: 0;
+                width: 100%;
+                flex-direction: row;
+                overflow-x: auto;
+                padding: 10px 15px;
+                box-sizing: border-box;
+                gap: 10px;
+                -ms-overflow-style: none; /* Hide scrollbar IE/Edge */
+                scrollbar-width: none; /* Hide scrollbar Firefox */
+            }
+            #bh-list::-webkit-scrollbar { display: none; } /* Hide scrollbar Chrome/Safari */
+
+            .bh-btn {
+                padding: 10px 15px;
+                font-size: 13px;
+                white-space: nowrap; /* Text break nahi hoga */
+                flex: 0 0 auto;
+                text-align: center;
+            }
+            .bh-btn:hover, .bh-btn.active {
+                transform: translateY(-3px); /* Hover par upar jayega, na ki side mein */
+            }
+
+            /* Bottom Sheet Data Panel */
+            #info-panel {
+                margin: auto 0 0 0;
+                width: 100%;
+                max-height: 45vh;
+                border-radius: 25px 25px 0 0;
+                border-left: none; border-right: none; border-bottom: none;
+                border-top: 2px solid #ff3333;
+                padding: 20px 25px;
+                box-sizing: border-box;
+            }
+
+            .bh-title { font-size: 24px; }
+            .bh-type { font-size: 11px; margin-bottom: 15px; padding-bottom: 10px;}
+            .data-row { font-size: 13px; margin-bottom: 10px; }
+            .desc-box { padding: 12px; font-size: 12px; margin-top: 15px; }
+
+            #instruction { display: none; } /* Mobile par instruction hata diya jagah bachane ke liye */
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <a href="deepspace.html" id="back-btn">← DEEP SPACE</a>
+        
+        <header style="text-align: center; pointer-events: none;">
+            <h1>OrbitX</h1>
+            <div class="subtitle">Event Horizon Simulator</div>
+        </header>
+
+        <div id="bh-list">
+            </div>
+
+        <div id="info-panel">
+            <div class="bh-title" id="p-name">Loading...</div>
+            <div class="bh-type" id="p-type">Analyzing</div>
+            
+            <div class="data-row"><strong>Mass</strong> <span id="p-mass"></span></div>
+            <div class="data-row"><strong>Distance from Earth</strong> <span id="p-dist"></span></div>
+            <div class="data-row"><strong>Location / Host Galaxy</strong> <span id="p-loc"></span></div>
+            <div class="data-row"><strong>Discovery Year</strong> <span id="p-year"></span></div>
+            
+            <div class="desc-box" id="p-desc"></div>
+        </div>
+
+        <div id="instruction">Drag to Rotate • Scroll to Zoom</div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        // --- 1. SETUP SCENE ---
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 30, 80);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        // --- BACKGROUND STARS ---
+        const starGeo = new THREE.BufferGeometry();
+        const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.2, transparent: true, opacity: 0.6 });
+        const starVertices = [];
+        for(let i=0; i<3000; i++) {
+            starVertices.push((Math.random() - 0.5) * 500, (Math.random() - 0.5) * 500, (Math.random() - 0.5) * 500);
+        }
+        starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+        const stars = new THREE.Points(starGeo, starMat);
+        scene.add(stars);
+
+        // --- 3D BLACK HOLE ENGINE ---
+        let accretionDisk, blackHoleSphere, photonRing;
+
+        function createBlackHole3D(colorHex, diskSize, particleCount) {
+            // Remove old if exists
+            if(accretionDisk) scene.remove(accretionDisk);
+            if(blackHoleSphere) scene.remove(blackHoleSphere);
+            if(photonRing) scene.remove(photonRing);
+
+            // 1. The Event Horizon (Pitch Black Sphere)
+            const bhGeo = new THREE.SphereGeometry(5, 64, 64);
+            const bhMat = new THREE.MeshBasicMaterial({ color: 0x000000 }); // Pure black
+            blackHoleSphere = new THREE.Mesh(bhGeo, bhMat);
+            scene.add(blackHoleSphere);
+
+            // 2. The Photon Ring (Bright inner glowing ring)
+            const photonGeo = new THREE.RingGeometry(5.2, 5.5, 64);
+            const photonMat = new THREE.MeshBasicMaterial({ 
+                color: colorHex, side: THREE.DoubleSide, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending 
+            });
+            photonRing = new THREE.Mesh(photonGeo, photonMat);
+            photonRing.rotation.x = Math.PI / 2;
+            scene.add(photonRing);
+
+            // 3. The Accretion Disk (Swirling Particles)
+            const diskGeo = new THREE.BufferGeometry();
+            const posArray = new Float32Array(particleCount * 3);
+            
+            for(let i=0; i < particleCount * 3; i+=3) {
+                // Randomize particles in a donut shape around the sphere
+                const radius = 6 + Math.random() * diskSize;
+                const theta = Math.random() * 2 * Math.PI;
+                
+                posArray[i] = Math.cos(theta) * radius; // x
+                posArray[i+1] = (Math.random() - 0.5) * 1.5; // y (thickness)
+                posArray[i+2] = Math.sin(theta) * radius; // z
+            }
+            
+            diskGeo.setAttribute('position', new THREE.Float32BufferAttribute(posArray, 3));
+            const diskMat = new THREE.PointsMaterial({
+                size: 0.15,
+                color: colorHex,
+                transparent: true,
+                opacity: 0.6,
+                blending: THREE.AdditiveBlending // Makes it glow like crazy
+            });
+
+            accretionDisk = new THREE.Points(diskGeo, diskMat);
+            // Tilt the disk slightly for cinematic effect
+            accretionDisk.rotation.x = 0.2; 
+            photonRing.rotation.x = 0.2 + (Math.PI/2);
+            
+            scene.add(accretionDisk);
+        }
+
+        // --- BLACK HOLE DATABASE ---
+        const blackHolesData = [
+            {
+                name: "Sagittarius A*",
+                type: "Supermassive Black Hole",
+                mass: "4.3 Million Solar Masses",
+                distance: "26,670 Light-years",
+                location: "Center of Milky Way Galaxy",
+                year: "1974",
+                desc: "The supermassive black hole at the very center of our own galaxy. Despite its massive size, it is currently 'quiet', consuming very little matter. It was finally photographed by the Event Horizon Telescope in 2022.",
+                visualColor: 0xff6600, // Orange/Red glow
+                diskSize: 15,
+                particles: 15000
+            },
+            {
+                name: "M87*",
+                type: "Supermassive Black Hole",
+                mass: "6.5 Billion Solar Masses",
+                distance: "53 Million Light-years",
+                location: "Messier 87 Galaxy (Virgo Cluster)",
+                year: "Photographed in 2019",
+                desc: "A true cosmic monster. M87* is one of the most massive black holes known and was the first black hole ever to be directly photographed. It fires a jet of plasma 5,000 light-years into space at near light-speed.",
+                visualColor: 0xffcc00, // Golden/Yellow glow
+                diskSize: 25,
+                particles: 25000
+            },
+            {
+                name: "TON 618",
+                type: "Ultramassive Black Hole (Quasar)",
+                mass: "66 Billion Solar Masses",
+                distance: "18.2 Billion Light-years",
+                location: "Canes Venatici Constellation",
+                year: "1970",
+                desc: "One of the most massive objects ever discovered in the universe. It is the engine driving an immensely powerful quasar, shining with the light of 140 trillion suns. Its event horizon is larger than our entire solar system.",
+                visualColor: 0x00d2ff, // Intense Blue/White glow (Quasars are extremely hot)
+                diskSize: 35,
+                particles: 30000
+            },
+            {
+                name: "Cygnus X-1",
+                type: "Stellar-Mass Black Hole",
+                mass: "21 Solar Masses",
+                distance: "6,000 Light-years",
+                location: "Cygnus Constellation",
+                year: "1964",
+                desc: "The first astronomical object widely accepted to be a black hole. It is slowly ripping gas away from a nearby blue supergiant companion star, heating the gas to millions of degrees and emitting intense X-rays.",
+                visualColor: 0xff00cc, // Purple/Magenta high-energy glow
+                diskSize: 8,
+                particles: 8000
+            },
+            {
+                name: "Gaia BH1",
+                type: "Stellar-Mass Black Hole",
+                mass: "9.6 Solar Masses",
+                distance: "1,560 Light-years",
+                location: "Ophiuchus Constellation",
+                year: "2022",
+                desc: "Currently the closest known black hole to Earth. It is a 'dormant' black hole, meaning it isn't actively feeding on matter and doesn't emit X-rays. It was discovered by observing the strange wobbling orbit of its companion star.",
+                visualColor: 0x444444, // Very dim, dormant
+                diskSize: 2,
+                particles: 3000
+            }
+        ];
+
+        // --- UI LOGIC ---
+        const listContainer = document.getElementById('bh-list');
+        
+        function loadData(index) {
+            const data = blackHolesData[index];
+            
+            // Update UI
+            document.getElementById('p-name').innerText = data.name;
+            document.getElementById('p-type').innerText = data.type;
+            document.getElementById('p-mass').innerText = data.mass;
+            document.getElementById('p-dist').innerText = data.distance;
+            document.getElementById('p-loc').innerText = data.location;
+            document.getElementById('p-year').innerText = data.year;
+            document.getElementById('p-desc').innerText = data.desc;
+
+            // Highlight active button
+            document.querySelectorAll('.bh-btn').forEach((btn, i) => {
+                btn.className = i === index ? 'bh-btn active' : 'bh-btn';
+            });
+
+            // Update 3D Visuals based on black hole type
+            createBlackHole3D(data.visualColor, data.diskSize, data.particles);
+        }
+
+        // Generate Buttons
+        blackHolesData.forEach((bh, index) => {
+            const btn = document.createElement('button');
+            btn.className = 'bh-btn';
+            btn.innerText = bh.name;
+            btn.onclick = () => loadData(index);
+            listContainer.appendChild(btn);
+        });
+
+        // Load first black hole by default
+        loadData(0);
+
+        // --- ANIMATION LOOP ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Spin the accretion disk and photon ring
+            if(accretionDisk) {
+                accretionDisk.rotation.y -= 0.01; // Swirling effect
+            }
+            if(photonRing) {
+                photonRing.rotation.z -= 0.02;
+            }
+
+            stars.rotation.y += 0.0005;
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+        });
+
+        animate();
+    </script>
+</body>
+</html>

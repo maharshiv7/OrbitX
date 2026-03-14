@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <title>Welcome to OrbitX</title>
+    <style>
+        /* (Aapki purani CSS waisi hi hai) */
+        body { margin: 0; overflow-x: hidden; overflow-y: auto; background-color: #020202; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: white; display: flex; flex-direction: column; min-height: 100vh; }
+        canvas { display: block; position: fixed; top: 0; left: 0; z-index: 0; }
+
+        #top-navbar { position: fixed; top: 0; left: 0; width: 100%; background: rgba(10, 15, 25, 0.75); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255, 221, 0, 0.2); display: flex; justify-content: space-between; align-items: center; padding: 15px 50px; box-sizing: border-box; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 1s ease; }
+        .nav-logo { color: #ffdd00; font-size: 24px; font-weight: bold; letter-spacing: 3px; text-decoration: none; text-transform: uppercase; text-shadow: 0 0 10px rgba(255, 221, 0, 0.4); }
+        .nav-links { display: flex; gap: 30px; align-items: center; }
+        .nav-links a { color: #e0e0e0; text-decoration: none; font-size: 14px; letter-spacing: 1.5px; text-transform: uppercase; transition: all 0.3s ease; padding: 8px 12px; border-radius: 8px; }
+        .nav-links a:hover { background: rgba(255, 221, 0, 0.1); color: #ffdd00; }
+        .nav-live { color: #ff4444 !important; font-weight: bold; border: 1px solid rgba(255, 68, 68, 0.3); animation: pulse-border 2s infinite; }
+        
+        /* 🔴 THE PULSING DOT CSS */
+        .pulsing-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background-color: #ff4444;
+            border-radius: 50%;
+            margin-right: 8px;
+            box-shadow: 0 0 10px #ff4444;
+            animation: pulse-dot 1.5s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.7); }
+            70% { transform: scale(1.2); box-shadow: 0 0 0 10px rgba(255, 68, 68, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 68, 68, 0); }
+        }
+
+        /* 🆕 AUTH BUTTON CSS */
+        .auth-btn { background: linear-gradient(90deg, #00d2ff, #3a7bd5); color: #fff !important; font-weight: bold; border: none; padding: 8px 20px !important; border-radius: 20px !important; cursor: pointer; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; font-size: 13px; }
+        .auth-btn:hover { box-shadow: 0 0 15px rgba(0, 210, 255, 0.6); transform: translateY(-2px); }
+
+        /* 🆕 AUTH MODAL (POPUP) CSS */
+        #auth-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); display: flex; justify-content: center; align-items: center; z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+        #auth-modal.active { opacity: 1; pointer-events: auto; }
+        .auth-box { background: rgba(15, 20, 30, 0.9); border: 1px solid #00d2ff; border-radius: 20px; padding: 40px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 0 30px rgba(0, 210, 255, 0.2); position: relative; transform: scale(0.9); transition: transform 0.3s ease; }
+        #auth-modal.active .auth-box { transform: scale(1); }
+        .close-btn { position: absolute; top: 15px; right: 20px; color: #aaa; font-size: 24px; cursor: pointer; transition: 0.3s; }
+        .close-btn:hover { color: #ff4444; }
+        .auth-title { color: #00d2ff; font-size: 24px; margin-top: 0; margin-bottom: 25px; letter-spacing: 2px; text-transform: uppercase; }
+        .auth-input { width: 100%; background: rgba(0,0,0,0.5); border: 1px solid rgba(0, 210, 255, 0.3); color: white; padding: 12px; margin-bottom: 15px; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
+        .auth-input:focus { outline: none; border-color: #00d2ff; box-shadow: 0 0 10px rgba(0, 210, 255, 0.3); }
+        .auth-submit { width: 100%; background: #00d2ff; color: #000; font-weight: bold; border: none; padding: 12px; border-radius: 8px; cursor: pointer; transition: 0.3s; font-size: 16px; text-transform: uppercase; letter-spacing: 1px; margin-top: 10px; }
+        .auth-submit:hover { background: #fff; box-shadow: 0 0 15px #00d2ff; }
+        .toggle-text { margin-top: 20px; font-size: 13px; color: #aaa; cursor: pointer; }
+        .toggle-text span { color: #00d2ff; text-decoration: underline; }
+        #auth-msg { margin-top: 15px; font-size: 13px; font-weight: bold; }
+
+        /* ... (Landing page & cards CSS same as before) ... */
+        #ui-layer { position: relative; flex-grow: 1; width: 100%; z-index: 10; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 1s ease-in-out; }
+        #landing-screen { display: flex; flex-direction: column; align-items: center; text-align: center; width: 100%; height: 100vh; justify-content: center; cursor: pointer; transition: opacity 0.8s ease; }
+        .main-title { font-size: 5rem; margin: 0; letter-spacing: 5px; font-weight: 800; text-transform: uppercase; background: linear-gradient(90deg, #00d2ff, #3a7bd5); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0px 0px 30px rgba(0, 210, 255, 0.4); }
+        .pulse-text { margin-top: 30px; font-size: 1.2rem; color: rgba(255, 255, 255, 0.7); letter-spacing: 2px; text-transform: uppercase; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 0.3; } 50% { opacity: 1; } 100% { opacity: 0.3; } }
+        #main-menu { display: none; flex-direction: column; align-items: center; width: 80%; max-width: 900px; opacity: 0; transition: opacity 1s ease; margin-top: 100px; margin-bottom: 80px; }
+        .menu-title { font-size: 2.5rem; margin-bottom: 50px; color: #fff; letter-spacing: 3px; }
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 40px; width: 100%; }
+        .module-card { background: rgba(15, 20, 30, 0.4); backdrop-filter: blur(12px); border: 1px solid rgba(0, 210, 255, 0.2); border-radius: 20px; padding: 50px 30px; text-align: center; text-decoration: none; color: white; transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease; cursor: pointer; }
+        .module-card:hover { transform: translateY(-10px); box-shadow: 0 10px 30px rgba(0, 210, 255, 0.2); border-color: #00d2ff; }
+        .module-card h3 { font-size: 2rem; margin-top: 0; margin-bottom: 15px; color: #00d2ff; }
+        .module-card p { color: #aaa; line-height: 1.5; font-size: 1.1rem; }
+        footer { margin-top: auto; background: rgba(10, 15, 25, 0.95); backdrop-filter: blur(10px); border-top: 1px solid rgba(255, 255, 255, 0.1); padding: 20px 40px; width: 100%; box-sizing: border-box; z-index: 100; position: relative; }
+        .footer-top { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; }
+        .social-icons { display: flex; gap: 35px; }
+        .social-icons a { color: #fff; font-size: 28px; transition: 0.3s; opacity: 0.8; }
+        .social-icons a:hover { color: #ffdd00; opacity: 1; transform: translateY(-2px); }
+        .footer-disclaimer { text-align: center; font-size: 11px; color: #555; margin-top: 10px; }
+
+        @media (max-width: 768px) {
+            #top-navbar { padding: 15px 20px; flex-direction: column; gap: 15px; }
+            .nav-links { gap: 15px; flex-wrap: wrap; justify-content: center; }
+            .nav-links a { font-size: 12px; padding: 6px 10px; }
+            .main-title { font-size: 2.8rem; letter-spacing: 2px; }
+            .pulse-text { font-size: 1rem; margin-top: 20px; }
+            #main-menu { margin-top: 130px; width: 90%; }
+            .menu-title { font-size: 1.8rem; margin-bottom: 30px; text-align: center; }
+            .module-card { padding: 30px 20px; }
+            .module-card h3 { font-size: 1.5rem; }
+            .card-grid { grid-template-columns: 1fr; gap: 20px; }
+        }
+    </style>
+</head>
+<body>
+    
+    <nav id="top-navbar">
+        <a href="index.html" class="nav-logo">OrbitX</a>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="#" class="nav-live" onclick="checkPremiumAccess('iss.html', event)"><span class="pulsing-dot"></span> Live Tracker</a>
+            <a href="#" onclick="checkPremiumAccess('mu.html', event)" style="color: #ffdd00;"><i class="fas fa-star"></i> My Universe</a>            
+            <button id="nav-auth-btn" class="auth-btn" onclick="openModal()">🔑 Login / Sign Up</button>
+        </div>
+    </nav>
+
+    <div id="auth-modal">
+        <div class="auth-box">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <h2 class="auth-title" id="auth-title">Agent Login</h2>
+            
+            <input type="text" id="auth-username" class="auth-input" placeholder="Desired Username" style="display: none;">
+            <input type="email" id="auth-email" class="auth-input" placeholder="Email Address">
+            <input type="password" id="auth-password" class="auth-input" placeholder="Password">
+            
+            <button class="auth-submit" id="auth-submit-btn" onclick="submitAuth()">Login</button>
+            <div id="auth-msg"></div>
+
+            <div class="toggle-text" id="toggle-text" onclick="toggleMode()">
+                New to OrbitX? <span>Create an account</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="ui-layer">
+        <div id="landing-screen">
+            <h1 class="main-title">Welcome to OrbitX</h1>
+            <div class="pulse-text">Tap anywhere to continue</div>
+        </div>
+
+        <div id="main-menu">
+            <h2 class="menu-title">Select Intelligence Module</h2>
+            <div class="card-grid">
+                <a href="planets.html" class="module-card">
+                    <h3>Solar System</h3>
+                    <p>Interactive 3D orrery featuring all major planets, their data, and orbital mechanics.</p>
+                </a>
+                <a href="deepspace.html" class="module-card" style="border-color: rgba(255, 0, 204, 0.3);">
+                    <h3 style="color: #ff00cc;">Deep Space</h3>
+                    <p>Explore Nebulae, Black Holes, and Constellations across the universe.</p>
+                </a>
+                <a href="#" class="module-card" style="border-color: rgba(0, 255, 136, 0.3);" onclick="checkPremiumAccess('exoplanets.html', event)">
+                    <h3 style="color: #00ff88;">
+                        Exoplanets <i id="exo-lock" class="fas fa-lock" style="font-size: 16px; margin-left: 5px;"></i>
+                    </h3>
+                    <p>Live query engine. Filter thousands of alien worlds using NASA's massive database. <span id="exo-premium-text" style="color: #aaa;">(Premium)</span></p>
+                </a>
+                <a href="#" class="module-card" style="border-color: rgba(255, 68, 68, 0.3);" onclick="checkPremiumAccess('classified.html', event)">
+                    <h3 style="color: #ff4444;">
+                        Classified <i id="class-lock" class="fas fa-lock" style="font-size: 16px; margin-left: 5px;"></i>
+                    </h3>
+                    <p>Top Secret FBI/NASA dossiers. Cosmic anomalies and unsolved mysteries. <span id="class-premium-text" style="color: #aaa;">(Level 5 Access)</span></p>
+                </a>
+                
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
+        camera.position.z = 1;
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const starGeo = new THREE.BufferGeometry();
+        const starCount = 6000;
+        const starVertices = [];
+        for(let i=0; i<starCount; i++) {
+            starVertices.push((Math.random() - 0.5) * 600, (Math.random() - 0.5) * 600, (Math.random() - 0.5) * 600);
+        }
+        starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+        const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.7, transparent: true, opacity: 0.8 });
+        const stars = new THREE.Points(starGeo, starMat);
+        scene.add(stars);
+
+        let warpSpeed = 0.5; 
+        function animate() {
+            const positions = starGeo.attributes.position.array;
+            for(let i=0; i<starCount; i++) {
+                let zIndex = i * 3 + 2; 
+                positions[zIndex] += warpSpeed; 
+                if(positions[zIndex] > 200) positions[zIndex] = -400;
+            }
+            starGeo.attributes.position.needsUpdate = true;
+            stars.rotation.z += 0.001;
+            renderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+        });
+
+        const landingScreen = document.getElementById('landing-screen');
+        const mainMenu = document.getElementById('main-menu');
+        const topNavbar = document.getElementById('top-navbar');
+
+        // ==========================================
+        // 🟢 NAYA LOGIC: DIRECT MENU PAR AANE KE LIYE
+        // ==========================================
+        if (window.location.hash === '#menu') {
+            landingScreen.style.display = 'none';
+            mainMenu.style.display = 'flex';
+            mainMenu.style.opacity = '1';
+            topNavbar.style.opacity = '1';
+            topNavbar.style.pointerEvents = 'auto';
+            warpSpeed = 0.1; // Stars ki speed bhi slow kar do
+        }
+
+        landingScreen.addEventListener('click', () => {
+            landingScreen.style.opacity = '0';
+            warpSpeed = 0.1; 
+            setTimeout(() => {
+                landingScreen.style.display = 'none';
+                mainMenu.style.display = 'flex';
+                setTimeout(() => { 
+                    mainMenu.style.opacity = '1'; 
+                    topNavbar.style.opacity = '1';
+                    topNavbar.style.pointerEvents = 'auto';
+                }, 50);
+            }, 800); 
+        });
+
+        // ==========================================
+        // 🔐 AUTHENTICATION JAVASCRIPT LOGIC
+        // ==========================================
+        let isLoginMode = true;
+
+        function openModal() { document.getElementById('auth-modal').classList.add('active'); }
+        function closeModal() { 
+            document.getElementById('auth-modal').classList.remove('active'); 
+            document.getElementById('auth-msg').innerText = ""; 
+        }
+
+        function toggleMode() {
+            isLoginMode = !isLoginMode;
+            document.getElementById('auth-msg').innerText = "";
+            if(isLoginMode) {
+                document.getElementById('auth-title').innerText = "Agent Login";
+                document.getElementById('auth-username').style.display = "none";
+                document.getElementById('auth-submit-btn').innerText = "Login";
+                document.getElementById('toggle-text').innerHTML = 'New to OrbitX? <span>Create an account</span>';
+            } else {
+                document.getElementById('auth-title').innerText = "Register Agent";
+                document.getElementById('auth-username').style.display = "block";
+                document.getElementById('auth-submit-btn').innerText = "Sign Up";
+                document.getElementById('toggle-text').innerHTML = 'Already registered? <span>Login here</span>';
+            }
+        }
+
+        // 🔓 UNLOCK UI FUNCTION
+        // 🔓 UNLOCK UI FUNCTION (Updated for Classified Files)
+        function unlockPremiumUI() {
+            // Exoplanets wale locks
+            const exoLock = document.getElementById('exo-lock');
+            const exoText = document.getElementById('exo-premium-text');
+            if (exoLock) exoLock.style.display = 'none';
+            if (exoText) exoText.style.display = 'none';
+
+            // Classified Files wale locks
+            const classLock = document.getElementById('class-lock');
+            const classText = document.getElementById('class-premium-text');
+            if (classLock) classLock.style.display = 'none';
+            if (classText) classText.style.display = 'none';
+        }
+
+        // 🚪 LOGOUT FUNCTION
+        function logoutUser() {
+            if(confirm("Are you sure you want to log out from OrbitX, Agent?")) {
+                localStorage.removeItem("orbitx_premium_user"); // Memory clear
+                window.location.href = "index.html"; // Redirect without hash
+            }
+        }
+
+        function submitAuth() {
+            const username = document.getElementById('auth-username').value;
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+            const msgBox = document.getElementById('auth-msg');
+
+            msgBox.style.color = "#ffdd00";
+            msgBox.innerText = "Processing Data...";
+
+            const endpoint = isLoginMode ? '/api/login' : '/api/signup';
+            const payload = isLoginMode ? { email, password } : { username, email, password };
+
+            fetch('http://127.0.0.1:5000' + endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.status === "success") {
+                    msgBox.style.color = "#00ff88"; 
+                    msgBox.innerText = data.message;
+                    
+                    if(isLoginMode) {
+                        localStorage.setItem("orbitx_premium_user", data.username);
+                        
+                        document.getElementById('nav-auth-btn').innerHTML = "👤 " + data.username + " <span style='font-size:10px; color:#ff4444;'>(Logout)</span>";
+                        document.getElementById('nav-auth-btn').style.background = "transparent";
+                        document.getElementById('nav-auth-btn').style.border = "1px solid #00ff88";
+                        document.getElementById('nav-auth-btn').onclick = logoutUser;
+                        
+                        unlockPremiumUI();
+                        setTimeout(closeModal, 1500); 
+                    } else {
+                        setTimeout(toggleMode, 2000); 
+                    }
+                } else {
+                    msgBox.style.color = "#ff4444"; 
+                    msgBox.innerText = data.message;
+                }
+            })
+            .catch(error => {
+                msgBox.style.color = "#ff4444";
+                msgBox.innerText = "Error connecting to Database server!";
+                console.error("Auth Error:", error);
+            });
+        }
+
+        // ==========================================
+        // 🛡️ PREMIUM ROUTE GUARD
+        // ==========================================
+        function checkPremiumAccess(targetUrl, event) {
+            event.preventDefault(); 
+            const loggedInUser = localStorage.getItem("orbitx_premium_user");
+            
+            if (loggedInUser) {
+                window.location.href = targetUrl;
+            } else {
+                alert("⚠️ ACCESS DENIED: This is a Premium Intelligence Module.\n\nPlease Login or Sign Up to access Live Tracking and Exoplanet Data.");
+                openModal(); 
+            }
+        }
+
+        window.onload = () => {
+            const savedUser = localStorage.getItem("orbitx_premium_user");
+            if(savedUser) {
+                document.getElementById('nav-auth-btn').innerHTML = "👤 " + savedUser + " <span style='font-size:10px; color:#ff4444;'>(Logout)</span>";
+                document.getElementById('nav-auth-btn').style.background = "transparent";
+                document.getElementById('nav-auth-btn').style.border = "1px solid #00ff88";
+                document.getElementById('nav-auth-btn').onclick = logoutUser;
+                
+                unlockPremiumUI();
+            }
+        };
+    </script>
+    
+    <footer>
+        <div class="footer-top">
+            <div class="copyright">© OrbitX by Maharshi Vyas, 2025-2026</div>
+            <div class="social-icons">
+                <a href="https://github.com/maharshiv7" target="_blank"><i class="fab fa-github"></i></a>
+                <a href="https://www.linkedin.com/in/maharshi-vyas-822444350/" target="_blank"><i class="fab fa-linkedin-in"></i></a>
+                <a href="https://instagram.com/maharshi_vyas" target="_blank"><i class="fab fa-instagram"></i></a>
+            </div>
+        </div>
+        <div class="footer-disclaimer">"OrbitX" is an educational project. Designed by Maharshi Vyas, 2nd-year CSE student at LJ Institute.</div>
+    </footer>
+
+</body>
+</html>

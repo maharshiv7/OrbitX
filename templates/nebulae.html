@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OrbitX - Deep Space Nebulae</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #02050a;
+            background-image: radial-gradient(circle at 50% 0%, #0a1526 0%, #02050a 80%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        header {
+            text-align: center;
+            padding: 40px 20px 20px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 36px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            background: linear-gradient(90deg, #ff00cc, #3333ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(255, 0, 204, 0.3);
+        }
+
+        .subtitle {
+            color: #00d2ff;
+            font-size: 14px;
+            letter-spacing: 2px;
+            margin-top: 10px;
+            text-transform: uppercase;
+        }
+
+        /* --- CSS GRID GALLERY --- */
+        #gallery-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 30px;
+            padding: 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Glassmorphism Cards */
+        .nebula-card {
+            background: rgba(15, 20, 30, 0.4);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 210, 255, 0.15);
+            border-radius: 15px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .nebula-card:hover {
+            transform: translateY(-10px);
+            border-color: #ff00cc;
+            box-shadow: 0 15px 40px rgba(255, 0, 204, 0.2);
+        }
+
+        .card-image-wrapper {
+            width: 100%;
+            height: 220px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .card-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .nebula-card:hover .card-image {
+            transform: scale(1.1);
+        }
+
+        .card-content {
+            padding: 20px;
+        }
+
+        .card-title {
+            font-size: 22px;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 5px;
+        }
+
+        .card-type {
+            font-size: 12px;
+            color: #ff00cc;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+
+        /* --- MODAL (POPUP FOR DETAILS) --- */
+        #modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(15px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        #modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-box {
+            background: rgba(10, 15, 25, 0.9);
+            border: 1px solid #00d2ff;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 50px rgba(0, 210, 255, 0.2);
+            position: relative;
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+
+        #modal-overlay.active .modal-box {
+            transform: scale(1);
+        }
+
+        /* Custom Scrollbar */
+        .modal-box::-webkit-scrollbar { width: 6px; }
+        .modal-box::-webkit-scrollbar-thumb { background: #ff00cc; border-radius: 10px; }
+
+        .modal-image {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            border: 1px solid white;
+            border-radius: 50%;
+            width: 35px; height: 35px;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex; justify-content: center; align-items: center;
+            transition: all 0.2s;
+            z-index: 10;
+        }
+        .modal-close:hover { background: #ff00cc; border-color: #ff00cc; }
+
+        .modal-info {
+            padding: 30px;
+        }
+
+        .modal-title { font-size: 32px; color: #fff; margin: 0 0 5px 0; }
+        .modal-subtitle { font-size: 14px; color: #ff00cc; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 25px; }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .info-item {
+            background: rgba(255,255,255,0.03);
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 3px solid #00d2ff;
+        }
+        .info-item span { display: block; font-size: 12px; color: #888; text-transform: uppercase; margin-bottom: 5px; }
+        .info-item strong { color: #fff; font-size: 16px; }
+
+        .modal-desc {
+            font-size: 15px;
+            line-height: 1.8;
+            color: #ccc;
+            background: rgba(0, 210, 255, 0.05);
+            padding: 20px;
+            border-radius: 10px;
+        }
+        
+        #back-btn {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            color: #00d2ff;
+            text-decoration: none;
+            font-size: 14px;
+            letter-spacing: 1px;
+            border: 1px solid #00d2ff;
+            padding: 8px 15px;
+            border-radius: 20px;
+            transition: all 0.3s;
+            z-index: 20;
+        }
+        #back-btn:hover { background: #00d2ff; color: #000; }
+
+        /* =========================================
+           📱 MOBILE RESPONSIVE FIX
+           ========================================= */
+        @media (max-width: 768px) {
+            header { padding: 80px 15px 15px; } /* Header ko niche kiya back button ke liye */
+            h1 { font-size: 26px; }
+            .subtitle { font-size: 11px; }
+
+            #back-btn { top: 15px; left: 15px; font-size: 12px; padding: 6px 12px; }
+
+            #gallery-container {
+                grid-template-columns: 1fr; /* Mobile par ek column */
+                padding: 20px;
+                gap: 20px;
+            }
+
+            .nebula-card { border-radius: 12px; }
+            .card-image-wrapper { height: 180px; }
+            .card-title { font-size: 18px; }
+
+            /* Modal Mobile Fix */
+            .modal-box { width: 95%; max-height: 85vh; }
+            .modal-image { height: 220px; }
+            .modal-info { padding: 20px; }
+            .modal-title { font-size: 24px; }
+            .modal-subtitle { font-size: 12px; margin-bottom: 15px; }
+            
+            .info-grid { grid-template-columns: 1fr; gap: 12px; }
+            .info-item { padding: 12px; }
+            .info-item strong { font-size: 14px; }
+            
+            .modal-desc { font-size: 13px; padding: 15px; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <a href="deepspace.html" id="back-btn">← BACK TO RADAR</a>
+
+    <header>
+        <h1>OrbitX Deep Space</h1>
+        <div class="subtitle">Stellar Nurseries & Supernova Remnants</div>
+    </header>
+
+    <div id="gallery-container">
+        </div>
+
+    <div id="modal-overlay">
+        <div class="modal-box">
+            <button class="modal-close" onclick="closeModal()">✖</button>
+            <img src="" alt="Nebula" class="modal-image" id="m-img">
+            <div class="modal-info">
+                <h2 class="modal-title" id="m-title">Name</h2>
+                <div class="modal-subtitle" id="m-type">Type</div>
+                
+                <div class="info-grid">
+                    <div class="info-item"><span>Distance</span><strong id="m-dist"></strong></div>
+                    <div class="info-item"><span>Constellation</span><strong id="m-const"></strong></div>
+                    <div class="info-item"><span>Radius</span><strong id="m-rad"></strong></div>
+                    <div class="info-item"><span>Age</span><strong id="m-age"></strong></div>
+                </div>
+
+                <div class="modal-desc" id="m-desc"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const nebulaeData = [
+            {
+                name: "Orion Nebula",
+                type: "Diffuse Emission / Reflection Nebula",
+                distance: "1,344 Light-years",
+                constellation: "Orion",
+                radius: "12 Light-years",
+                age: "3 Million Years",
+                image: "https://upload.wikimedia.org/wikipedia/commons/f/f3/Orion_Nebula_-_Hubble_2006_mosaic_18000.jpg",
+                desc: "One of the brightest nebulae, visible to the naked eye in the night sky. It is a massive stellar nursery where thousands of new stars are being born from collapsing clouds of cosmic dust and gas."
+            },
+            {
+                name: "Carina Nebula",
+                type: "Emission Nebula",
+                distance: "8,500 Light-years",
+                constellation: "Carina",
+                radius: "230 Light-years",
+                age: "3 Million Years",
+                image: "assets/carinan.jpg",
+                desc: "Captured brilliantly by the James Webb Space Telescope, this is one of the largest diffuse nebulae in our skies. It contains highly luminous and massive stars, including the unstable hypergiant Eta Carinae."
+            },
+            {
+                name: "Eagle Nebula (Pillars of Creation)",
+                type: "Emission Nebula / H II Region",
+                distance: "7,000 Light-years",
+                constellation: "Serpens",
+                radius: "70 Light-years",
+                age: "5.5 Million Years",
+                image: "https://upload.wikimedia.org/wikipedia/commons/6/68/Pillars_of_creation_2014_HST_WFC3-UVIS_full-res_denoised.jpg",
+                desc: "Famous for the 'Pillars of Creation', towering tendrils of cosmic dust and gas where infant stars are actively forming. The pillars are slowly being eroded away by intense ultraviolet light from massive nearby stars."
+            },
+            {
+                name: "Crab Nebula",
+                type: "Supernova Remnant",
+                distance: "6,500 Light-years",
+                constellation: "Taurus",
+                radius: "5.5 Light-years",
+                age: "Observed in 1054 AD",
+                image: "https://upload.wikimedia.org/wikipedia/commons/0/00/Crab_Nebula.jpg",
+                desc: "The expanding rubble from a massive star that exploded as a supernova, recorded by Chinese astronomers in the year 1054. At its center lies a rapidly spinning pulsar (a neutron star) emitting pulses of radiation."
+            },
+            {
+                name: "Ring Nebula",
+                type: "Planetary Nebula",
+                distance: "2,574 Light-years",
+                constellation: "Lyra",
+                radius: "1.3 Light-years",
+                age: "7,000 Years",
+                image: "assets/ring.jpg",
+                desc: "A beautiful example of a planetary nebula, formed when a dying, sun-like star expelled its outer layers into space. The central white dwarf illuminates the surrounding shell of ionized gas."
+            },
+            {
+                name: "Helix Nebula (Eye of God)",
+                type: "Planetary Nebula",
+                distance: "650 Light-years",
+                constellation: "Aquarius",
+                radius: "2.87 Light-years",
+                age: "10,600 Years",
+                image: "https://upload.wikimedia.org/wikipedia/commons/b/b1/NGC7293_%282004%29.jpg",
+                desc: "One of the closest planetary nebulae to Earth. Its striking appearance, resembling a giant eye looking across the cosmos, is created by the complex structure of dust and gas thrown off by the dying central star."
+            }
+        ];
+
+        const gallery = document.getElementById('gallery-container');
+        const modal = document.getElementById('modal-overlay');
+
+        // Render Cards
+        nebulaeData.forEach((nebula, index) => {
+            const card = document.createElement('div');
+            card.className = 'nebula-card';
+            card.onclick = () => openModal(index); 
+
+            card.innerHTML = `
+                <div class="card-image-wrapper">
+                    <img src="${nebula.image}" class="card-image" alt="${nebula.name}" loading="lazy">
+                </div>
+                <div class="card-content">
+                    <div class="card-title">${nebula.name}</div>
+                    <div class="card-type">${nebula.type}</div>
+                </div>
+            `;
+            gallery.appendChild(card);
+        });
+
+        // Modal Logic
+        function openModal(index) {
+            const data = nebulaeData[index];
+            
+            document.getElementById('m-img').src = data.image;
+            document.getElementById('m-title').innerText = data.name;
+            document.getElementById('m-type').innerText = data.type;
+            document.getElementById('m-dist').innerText = data.distance;
+            document.getElementById('m-const').innerText = data.constellation;
+            document.getElementById('m-rad').innerText = data.radius;
+            document.getElementById('m-age').innerText = data.age;
+            document.getElementById('m-desc').innerText = data.desc;
+
+            modal.classList.add('active');
+        }
+
+        function closeModal() {
+            modal.classList.remove('active');
+            setTimeout(() => { document.getElementById('m-img').src = ''; }, 300);
+        }
+
+        modal.addEventListener('click', (e) => {
+            if(e.target === modal) closeModal();
+        });
+
+    </script>
+</body>
+</html>

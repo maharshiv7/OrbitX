@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OrbitX - Glowing Solar System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: white; }
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        header { padding: 20px 40px; }
+        h1 { margin: 0; font-size: 28px; letter-spacing: 3px; text-shadow: 0 0 15px rgba(0, 210, 255, 0.8); text-transform: uppercase;}
+        #instruction { position: absolute; bottom: 20px; width: 100%; text-align: center; color: rgba(0, 210, 255, 0.8); letter-spacing: 2px; font-size: 13px; text-transform: uppercase; text-shadow: 0 0 10px #00d2ff; }
+
+        /* EXIT BUTTON CSS */
+        #exit-btn { position: absolute; top: 25px; right: 30px; color: #ff4444; text-decoration: none; font-size: 14px; font-weight: bold; letter-spacing: 1px; border: 1px solid rgba(255, 68, 68, 0.4); padding: 8px 16px; border-radius: 20px; background: rgba(15, 20, 30, 0.6); backdrop-filter: blur(5px); transition: all 0.3s; pointer-events: auto; display: flex; align-items: center; gap: 8px; z-index: 1000; }
+        #exit-btn:hover { background: #ff4444; color: #fff; box-shadow: 0 0 15px rgba(255, 68, 68, 0.8); border-color: #ff4444; }
+
+        /* INFO PANEL */
+        #info-panel { position: absolute; top: 80px; right: -450px; width: 350px; max-height: 85vh; overflow-y: auto; background: rgba(5, 10, 20, 0.85); backdrop-filter: blur(10px); border: 1px solid #00d2ff; border-radius: 10px; padding: 25px; transition: right 0.4s ease-in-out; pointer-events: auto; box-shadow: 0 0 30px rgba(0, 210, 255, 0.3); box-sizing: border-box; }
+        #info-panel::-webkit-scrollbar { width: 4px; }
+        #info-panel::-webkit-scrollbar-thumb { background: #00d2ff; }
+        #info-panel.active { right: 20px; }
+        #close-btn { float: right; cursor: pointer; color: #00d2ff; font-size: 18px; font-weight: bold;}
+        
+        /* 🟢 NAYA: Header layout for Title and Bookmark Button */
+        .planet-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,210,255,0.3); padding-bottom: 15px; margin-bottom: 20px; margin-top: 10px;}
+        .planet-title { font-size: 26px; font-weight: bold; color: #fff; text-shadow: 0 0 10px #00d2ff; text-transform: uppercase; margin: 0;}
+        
+        /* 🟢 NAYA: Bookmark Button CSS */
+        #bookmark-btn { background: rgba(0, 210, 255, 0.1); border: 1px solid #00d2ff; color: #00d2ff; padding: 6px 12px; border-radius: 5px; cursor: pointer; transition: all 0.3s; font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;}
+        #bookmark-btn:hover { background: #00d2ff; color: #000; box-shadow: 0 0 15px #00d2ff; }
+        #bookmark-btn.saved { background: #ffdd00; color: #000; border-color: #ffdd00; box-shadow: 0 0 15px rgba(255, 221, 0, 0.6); pointer-events: none; }
+
+        .data-row { margin-bottom: 12px; font-size: 14px; line-height: 1.6; color: #baddff; }
+        .data-row strong { color: #00d2ff; display: inline-block; width: 120px; text-transform: uppercase; font-size: 12px;}
+        .structure-box { background: rgba(0, 210, 255, 0.05); padding: 15px; border-radius: 5px; margin-top: 15px; font-size: 13px; color: #fff; border-left: 3px solid #00d2ff; }
+
+        @media (max-width: 768px) {
+            header { padding: 15px 20px; text-align: center; }
+            h1 { font-size: 22px; }
+            #exit-btn { top: 15px; right: 15px; font-size: 12px; padding: 6px 12px; }
+            #instruction { bottom: auto; top: 75px; font-size: 10px; }
+            #info-panel { width: 100%; max-height: 55vh; top: auto; bottom: -100%; right: 0; left: 0; border-radius: 25px 25px 0 0; border-bottom: none; transition: bottom 0.4s ease-in-out; padding: 20px 25px; }
+            #info-panel.active { right: 0; bottom: 0; }
+            #close-btn { font-size: 22px; margin-bottom: 5px; }
+            .planet-title { font-size: 20px; }
+            .data-row { font-size: 13px; margin-bottom: 8px; }
+            .data-row strong { width: 100px; font-size: 11px; }
+            .structure-box { padding: 10px; font-size: 12px; margin-top: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <header>
+            <h1>OrbitX</h1>
+            <div style="color: #00d2ff; font-size: 12px; letter-spacing: 2px; text-shadow: 0 0 5px #00d2ff;">Tactical Space Radar</div>
+        </header>
+
+        <a href="index.html#menu" id="exit-btn"><i class="fas fa-door-open"></i> EXIT</a>
+        <div id="instruction">Drag to Rotate • Scroll to Zoom • Click Target to Scan</div>
+
+        <div id="info-panel">
+            <span id="close-btn">[ X ]</span>
+            
+            <div class="planet-header">
+                <div class="planet-title" id="p-name"></div>
+                <button id="bookmark-btn" onclick="saveToUniverse()" style="display: none;">
+                    <i class="far fa-star"></i> Save
+                </button>
+            </div>
+
+            <div class="data-row"><strong>Age:</strong> <span id="p-age"></span></div>
+            <div class="data-row"><strong>Orbit Time:</strong> <span id="p-orbitTime"></span></div>
+            <div class="data-row"><strong>Orbit Speed:</strong> <span id="p-speed"></span></div>
+            <div class="data-row"><strong>Spin/Day:</strong> <span id="p-spin"></span></div>
+            <div class="data-row"><strong>Axis Tilt:</strong> <span id="p-tilt"></span></div>
+            <div class="data-row"><strong>Moons:</strong> <span id="p-moons"></span></div>
+            <div class="data-row" style="margin-top: 20px;"><strong>Atmosphere:</strong></div>
+            <div style="font-size: 13px; color: #fff; margin-bottom: 20px;" id="p-atmos"></div>
+            <div class="data-row"><strong>Structure:</strong></div>
+            <div class="structure-box" id="p-struct"></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x000000, 0.0015);
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 2000);
+        camera.position.set(0, 100, 200);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        // --- STARS BACKGROUND ---
+        const starGeo = new THREE.BufferGeometry();
+        const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.3, transparent: true, opacity: 0.8 });
+        const starVertices = [];
+        for(let i=0; i<8000; i++) {
+            starVertices.push((Math.random() - 0.5) * 1500, (Math.random() - 0.5) * 1500, (Math.random() - 0.5) * 1500);
+        }
+        starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+        const stars = new THREE.Points(starGeo, starMat);
+        scene.add(stars);
+
+        // --- LIGHTING ---
+        const sunLight = new THREE.PointLight(0xffffff, 2.5, 800);
+        scene.add(sunLight);
+        scene.add(new THREE.AmbientLight(0x223344));
+
+        const planets = [];
+        function createBody(data) {
+            const group = new THREE.Group();
+            group.position.x = data.distance;
+            group.userData = data;
+
+            const coreGeo = new THREE.SphereGeometry(data.radius, 64, 64);
+            let coreMat;
+            if(data.isSun) {
+                coreMat = new THREE.MeshBasicMaterial({ color: data.color });
+            } else {
+                coreMat = new THREE.MeshPhongMaterial({ color: data.color, emissive: data.color, emissiveIntensity: 0.4, shininess: 50 });
+            }
+            const core = new THREE.Mesh(coreGeo, coreMat);
+            group.add(core);
+
+            const auraGeo = new THREE.SphereGeometry(data.radius * 1.15, 64, 64);
+            const auraMat = new THREE.MeshBasicMaterial({ color: data.color, transparent: true, opacity: 0.15, blending: THREE.AdditiveBlending });
+            const aura = new THREE.Mesh(auraGeo, auraMat);
+            group.add(aura);
+
+            if(data.name === "Saturn") {
+                const ringGeo = new THREE.RingGeometry(data.radius * 1.4, data.radius * 2.2, 128);
+                const ringMat = new THREE.MeshBasicMaterial({ color: data.color, side: THREE.DoubleSide, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending });
+                const rings = new THREE.Mesh(ringGeo, ringMat);
+                rings.rotation.x = Math.PI / 2;
+                rings.rotation.y = 0.2; 
+                group.add(rings);
+            }
+
+            if(!data.isSun) {
+                const orbitGeo = new THREE.RingGeometry(data.distance - 0.2, data.distance + 0.2, 128);
+                const orbitMat = new THREE.MeshBasicMaterial({ color: data.color, side: THREE.DoubleSide, transparent: true, opacity: 0.15, blending: THREE.AdditiveBlending });
+                const orbit = new THREE.Mesh(orbitGeo, orbitMat);
+                orbit.rotation.x = Math.PI / 2;
+                scene.add(orbit);
+            }
+
+            scene.add(group);
+            return { group: group, aura: aura, distance: data.distance, orbitSpeed: data.orbitSpeed, spinSpeed: data.spinSpeed, angle: Math.random() * Math.PI * 2 };
+        }
+
+        const celestialData = [
+            { isSun: true, name: "The Sun", color: 0xffcc00, radius: 10, distance: 0, orbitSpeed: 0, spinSpeed: 0.002, age: "~4.6 Billion Yrs", orbitTime: "N/A", speed: "N/A", tilt: "7.25°", spin: "25 days", moons: "8 Planets", atmos: "Plasma: Hydrogen, Helium", struct: "Nuclear fusion core." },
+            { name: "Mercury", color: 0xcccccc, radius: 1, distance: 22, orbitSpeed: 0.02, spinSpeed: 0.01, age: "~4.5 Billion Yrs", orbitTime: "88 days", speed: "47 km/s", tilt: "0.03°", spin: "59 days", moons: "0", atmos: "Vacuum", struct: "Large iron core." },
+            { name: "Venus", color: 0xffaa55, radius: 1.8, distance: 35, orbitSpeed: 0.015, spinSpeed: -0.005, age: "~4.5 Billion Yrs", orbitTime: "225 days", speed: "35 km/s", tilt: "177°", spin: "243 days", moons: "0", atmos: "Thick CO2.", struct: "Rocky surface." },
+            { name: "Earth", color: 0x00d2ff, radius: 2, distance: 50, orbitSpeed: 0.01, spinSpeed: 0.02, age: "~4.5 Billion Yrs", orbitTime: "365 days", speed: "30 km/s", tilt: "23.5°", spin: "24 hours", moons: "1", atmos: "Nitrogen, Oxygen.", struct: "Liquid oceans, iron core." },
+            { name: "Mars", color: 0xff4422, radius: 1.2, distance: 65, orbitSpeed: 0.008, spinSpeed: 0.018, age: "~4.5 Billion Yrs", orbitTime: "687 days", speed: "24 km/s", tilt: "25.2°", spin: "24.6 hours", moons: "2", atmos: "Thin CO2.", struct: "Iron oxide dust." },
+            { name: "Jupiter", color: 0xffaa88, radius: 6, distance: 95, orbitSpeed: 0.004, spinSpeed: 0.04, age: "~4.5 Billion Yrs", orbitTime: "12 years", speed: "13 km/s", tilt: "3.1°", spin: "10 hours", moons: "95", atmos: "Hydrogen, Helium.", struct: "Gas Giant." },
+            { name: "Saturn", color: 0xffcc77, radius: 5, distance: 130, orbitSpeed: 0.003, spinSpeed: 0.038, age: "~4.5 Billion Yrs", orbitTime: "29.5 years", speed: "9.7 km/s", tilt: "26.7°", spin: "10.7 hours", moons: "146", atmos: "Hydrogen, Helium.", struct: "Complex icy ring system." },
+            { name: "Uranus", color: 0x00ffff, radius: 3.5, distance: 165, orbitSpeed: 0.002, spinSpeed: -0.025, age: "~4.5 Billion Yrs", orbitTime: "84 years", speed: "6.8 km/s", tilt: "98°", spin: "17 hours", moons: "28", atmos: "Methane ices.", struct: "Ice Giant." },
+            { name: "Neptune", color: 0x4466ff, radius: 3.3, distance: 195, orbitSpeed: 0.001, spinSpeed: 0.026, age: "~4.5 Billion Yrs", orbitTime: "165 years", speed: "5.4 km/s", tilt: "28.3°", spin: "16 hours", moons: "16", atmos: "Active storms.", struct: "Ice Giant." }
+        ];
+
+        celestialData.forEach(data => { planets.push(createBody(data)); });
+
+        // --- CLICK DETECTION & DATA INJECTION ---
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        const infoPanel = document.getElementById('info-panel');
+        let activeAura = null;
+        let currentPlanetName = ""; // 🟢 Kaunsa planet select hua hai wo yaad rakhne ke liye
+
+        window.addEventListener('click', (event) => {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+
+            const objectsToIntersect = [];
+            planets.forEach(p => objectsToIntersect.push(...p.group.children));
+
+            const intersects = raycaster.intersectObjects(objectsToIntersect);
+
+            if (intersects.length > 0) {
+                let clickedMesh = intersects[0].object;
+                let parentGroup = clickedMesh.parent;
+                if(!parentGroup.userData.name) return; 
+
+                const data = parentGroup.userData;
+                currentPlanetName = data.name; // Planet ka naam set kiya
+                
+                if(activeAura) activeAura.material.opacity = 0.15; 
+                activeAura = parentGroup.children[1]; 
+                if(activeAura) activeAura.material.opacity = 0.5; 
+
+                document.getElementById('p-name').innerText = data.name;
+                document.getElementById('p-age').innerText = data.age;
+                document.getElementById('p-orbitTime').innerText = data.orbitTime;
+                document.getElementById('p-speed').innerText = data.speed;
+                document.getElementById('p-spin').innerText = data.spin;
+                document.getElementById('p-tilt').innerText = data.tilt;
+                document.getElementById('p-moons').innerText = data.moons;
+                document.getElementById('p-atmos').innerText = data.atmos;
+                document.getElementById('p-struct').innerText = data.struct;
+
+                // 🟢 SHOW BOOKMARK BUTTON ONLY IF LOGGED IN
+                const loggedInUser = localStorage.getItem("orbitx_premium_user");
+                const btn = document.getElementById('bookmark-btn');
+                if(loggedInUser) {
+                    btn.style.display = 'block';
+                    btn.className = ''; // Reset CSS classes
+                    btn.innerHTML = '<i class="far fa-star"></i> Save';
+                } else {
+                    btn.style.display = 'none';
+                }
+
+                infoPanel.classList.add('active');
+            }
+        });
+
+        document.getElementById('close-btn').addEventListener('click', () => {
+            infoPanel.classList.remove('active');
+            if(activeAura) activeAura.material.opacity = 0.15;
+        });
+
+        // ==========================================
+        // 🟢 NAYA: SAVE TO DATABASE LOGIC (FETCH API)
+        // ==========================================
+        function saveToUniverse() {
+            const user = localStorage.getItem("orbitx_premium_user");
+            if(!user) return; // Agar by chance click ho jaye bina login ke
+            
+            const btn = document.getElementById('bookmark-btn');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...'; // Loading animation
+
+            // Python API ko data bhej rahe hain
+            fetch('http://127.0.0.1:5000/api/save_bookmark', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: user, planet_name: currentPlanetName })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.status === 'success') {
+                    // Success hone par button ko Yellow aur solid star bana do
+                    btn.classList.add('saved');
+                    btn.innerHTML = '<i class="fas fa-star"></i> Saved';
+                } else if(data.message.includes('Already saved')) {
+                    // Agar pehle se save hai toh wahi dikhao
+                    btn.classList.add('saved');
+                    btn.innerHTML = '<i class="fas fa-star"></i> Saved';
+                } else {
+                    alert("Error: " + data.message);
+                    btn.innerHTML = '<i class="far fa-star"></i> Save';
+                }
+            })
+            .catch(error => {
+                alert("Database server is offline!");
+                btn.innerHTML = '<i class="far fa-star"></i> Save';
+            });
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            planets.forEach(p => {
+                p.group.rotation.y += p.spinSpeed;
+                if(!p.group.userData.isSun) {
+                    p.angle += p.orbitSpeed;
+                    p.group.position.x = Math.cos(p.angle) * p.distance;
+                    p.group.position.z = Math.sin(p.angle) * p.distance;
+                }
+            });
+            stars.rotation.y += 0.0002;
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+        });
+
+        animate();
+    </script>
+</body>
+</html>

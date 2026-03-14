@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OrbitX - Live ISS Tracker</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { 
+            margin: 0; background-color: #010308; color: white; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            text-align: center;
+        }
+        header { padding: 20px; background: rgba(10, 15, 25, 0.9); border-bottom: 2px solid #ffdd00; }
+        h1 { margin: 0; color: #ffdd00; letter-spacing: 3px; text-transform: uppercase; font-size: 28px; }
+        .blinking-dot { display: inline-block; width: 12px; height: 12px; background-color: red; border-radius: 50%; margin-right: 10px; animation: blink 1s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
+        
+        /* Map Container */
+        #iss-map { 
+            width: 90%; height: 70vh; margin: 30px auto; 
+            border: 3px solid rgba(255, 221, 0, 0.5); border-radius: 15px; 
+            box-shadow: 0 0 30px rgba(0, 150, 255, 0.2);
+        }
+
+        .data-panel {
+            display: flex; justify-content: center; gap: 40px; margin-bottom: 30px;
+        }
+        .data-box {
+            background: rgba(255, 255, 255, 0.05); padding: 15px 30px; border-radius: 10px;
+            border-left: 3px solid #00ffff; font-family: monospace; font-size: 18px;
+        }
+        .data-box span { color: #00ffff; font-weight: bold; font-size: 22px; display: block;}
+
+        /* =========================================
+           📱 MOBILE RESPONSIVE FIX
+           ========================================= */
+        @media (max-width: 768px) {
+            header { padding: 15px; }
+            h1 { font-size: 20px; letter-spacing: 1px; }
+            header p { font-size: 11px; }
+
+            #iss-map { 
+                width: 95%; 
+                height: 50vh; /* Mobile par map ki height kam ki */
+                margin: 20px auto; 
+            }
+
+            .data-panel {
+                flex-direction: column; /* Boxes ek ke niche ek aayenge */
+                gap: 15px;
+                align-items: center;
+                margin-bottom: 40px;
+            }
+
+            .data-box {
+                width: 85%;
+                padding: 12px 20px;
+                font-size: 16px;
+            }
+
+            .data-box span {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1><span class="blinking-dot"></span> OrbitX Command Center</h1>
+        <p style="color: #aaa; margin-top: 5px;">Tracking the International Space Station in Real-Time</p>
+    </header>
+    <div style="background: rgba(0, 210, 255, 0.1); padding: 15px; border-radius: 10px; border: 1px solid #00d2ff; display: inline-block; margin-bottom: 20px;">
+        <span style="color: #00d2ff; font-weight: bold; margin-right: 10px;">🕰️ TIME MACHINE:</span>
+        <input type="datetime-local" id="time-input" style="background: #000; color: #fff; border: 1px solid #00d2ff; padding: 5px 10px; border-radius: 5px;">
+        <button onclick="predictLocation()" style="background: #00d2ff; color: #000; border: none; padding: 7px 15px; font-weight: bold; border-radius: 5px; cursor: pointer; margin-left: 10px;">PREDICT</button>
+        <button onclick="goLive()" style="background: #ff4444; color: #fff; border: none; padding: 7px 15px; font-weight: bold; border-radius: 5px; cursor: pointer; margin-left: 5px;">🔴 GO LIVE</button>
+    </div>
+    <div id="iss-map"></div>
+
+    <div class="data-panel">
+        <div class="data-box">LATITUDE <span id="lat">Loading...</span></div>
+        <div class="data-box">LONGITUDE <span id="lon">Loading...</span></div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // 1. Map Setup
+        const map = L.map('iss-map').setView([0, 0], 3);
+        
+        // Esri World Imagery
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'OrbitX Tracker | Tiles &copy; Esri'
+        }).addTo(map);
+
+        // 2. Custom ISS Icon
+        const issIcon = L.icon({
+            iconUrl: 'assets/iss.jpg', 
+            iconSize: [60, 60], 
+            iconAnchor: [30, 30] 
+        });
+
+        // Add Marker
+        let issMarker = L.marker([0, 0], {icon: issIcon}).addTo(map);
+        let firstLoad = true;
+
+        // 3. The Live Fetch Engine
+        function updateISSPosition() {
+            fetch('http://127.0.0.1:5000/api/iss-location') 
+                .then(response => response.json())
+                .then(data => {
+                    if(data.status === "success") {
+                        const lat = parseFloat(data.latitude);
+                        const lon = parseFloat(data.longitude);
+
+                        document.getElementById('lat').innerText = lat.toFixed(4);
+                        document.getElementById('lon').innerText = lon.toFixed(4);
+
+                        issMarker.setLatLng([lat, lon]);
+                        map.panTo([lat, lon], {animate: true, duration: 1.0}); 
+                        
+                        if (firstLoad) {
+                            map.setZoom(4); 
+                            firstLoad = false;
+                        }
+                    }
+                })
+                .catch(error => console.error("Houston, we have a problem:", error));
+        }
+
+        updateISSPosition();
+        setInterval(updateISSPosition, 2000); 
+
+        let liveInterval = setInterval(updateISSPosition, 2000); // Live tracker id save ki
+
+        // Function 2: Predict Location (Time Travel)
+        function predictLocation() {
+            const timeInput = document.getElementById('time-input').value;
+            if(!timeInput) {
+                alert("Please select a date and time first!");
+                return;
+            }
+
+            // Live updates rok do taaki map jump na kare
+            clearInterval(liveInterval);
+            
+            // Date ko Unix Timestamp (seconds) mein convert karna
+            const unixTime = Math.floor(new Date(timeInput).getTime() / 1000);
+
+            // Apne Python Backend se prediction mangna
+            fetch(`http://127.0.0.1:5000/api/iss-predict?timestamp=${unixTime}`)
+                .then(response => response.json())
+                .then(data => {
+                    if(data.status === "success") {
+                        const lat = parseFloat(data.latitude);
+                        const lon = parseFloat(data.longitude);
+
+                        document.getElementById('lat').innerText = lat.toFixed(4) + " (Predicted)";
+                        document.getElementById('lon').innerText = lon.toFixed(4) + " (Predicted)";
+
+                        issMarker.setLatLng([lat, lon]);
+                        map.flyTo([lat, lon], 5, {animate: true, duration: 2.0}); // Zoom in on prediction
+                    }
+                })
+                .catch(error => console.error("Error predicting:", error));
+        }
+
+        // Function 3: Wapas Live mode mein aana
+        function goLive() {
+            document.getElementById('time-input').value = ""; // Input clear karo
+            updateISSPosition(); // Ek baar turant update karo
+            liveInterval = setInterval(updateISSPosition, 2000); // Wapas har 2 second wala loop chalu
+            map.setZoom(3);
+        }
+    </script>
+</body>
+</html>

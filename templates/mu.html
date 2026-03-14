@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OrbitX - My Universe</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            background-color: #02050a;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-image: radial-gradient(circle at center, #0a1128 0%, #02050a 100%);
+        }
+
+        /* NAVBAR */
+        header {
+            padding: 20px 50px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(0, 210, 255, 0.2);
+            background: rgba(5, 10, 20, 0.8);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        h1 { margin: 0; font-size: 26px; color: #ffdd00; letter-spacing: 2px; text-transform: uppercase; }
+        
+        #exit-btn {
+            color: #ff4444; text-decoration: none; font-size: 14px; font-weight: bold;
+            border: 1px solid rgba(255, 68, 68, 0.4); padding: 8px 16px; border-radius: 20px;
+            transition: 0.3s; display: flex; align-items: center; gap: 8px;
+            background: rgba(255, 0, 0, 0.05);
+        }
+        #exit-btn:hover { background: #ff4444; color: #fff; box-shadow: 0 0 15px rgba(255, 68, 68, 0.8); border-color: #ff4444; }
+
+        /* PROFILE SECTION */
+        .profile-header {
+            text-align: center;
+            margin: 50px 20px 30px 20px;
+        }
+        .profile-icon {
+            font-size: 60px;
+            color: #00d2ff;
+            text-shadow: 0 0 20px rgba(0, 210, 255, 0.5);
+            margin-bottom: 15px;
+        }
+        .agent-name {
+            font-size: 36px;
+            font-weight: bold;
+            color: #fff;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        .agent-subtitle {
+            color: #00ff88;
+            font-size: 14px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            margin-top: 5px;
+        }
+
+        /* GRID SECTION */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            flex-grow: 1;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .section-title {
+            font-size: 22px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+            color: #aaa;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 25px;
+        }
+
+        /* PLANET CARD CSS */
+        .planet-card {
+            background: rgba(15, 20, 30, 0.6);
+            border: 1px solid rgba(0, 210, 255, 0.3);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .planet-card:hover {
+            transform: translateY(-5px);
+            border-color: #00d2ff;
+            box-shadow: 0 10px 25px rgba(0, 210, 255, 0.2);
+        }
+        .planet-card::before {
+            content: ''; position: absolute; top: -50px; left: -50px; width: 100px; height: 100px;
+            background: radial-gradient(circle, rgba(0,210,255,0.2) 0%, rgba(0,0,0,0) 70%);
+            border-radius: 50%; opacity: 0; transition: 0.5s;
+        }
+        .planet-card:hover::before { opacity: 1; }
+
+        .planet-icon { font-size: 40px; color: #ffdd00; margin-bottom: 15px; }
+        .planet-name { font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 10px; }
+        .planet-tag { font-size: 12px; color: #00d2ff; background: rgba(0, 210, 255, 0.1); padding: 4px 10px; border-radius: 10px; display: inline-block; }
+
+        .loading-text { text-align: center; font-size: 18px; color: #00d2ff; grid-column: 1 / -1; margin-top: 50px; }
+        .empty-text { text-align: center; font-size: 18px; color: #aaa; grid-column: 1 / -1; margin-top: 50px; line-height: 1.6; }
+
+        @media (max-width: 768px) {
+            header { padding: 15px 20px; flex-direction: column; gap: 15px;}
+            .agent-name { font-size: 28px; }
+            .grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>OrbitX</h1>
+        <a href="index.html#menu" id="exit-btn"><i class="fas fa-reply"></i> RETURN TO MENU</a>
+    </header>
+
+    <div class="profile-header">
+        <i class="fas fa-user-astronaut profile-icon"></i>
+        <div class="agent-name" id="display-name">Loading...</div>
+        <div class="agent-subtitle">Registered Explorer</div>
+    </div>
+
+    <div class="container">
+        <div class="section-title">
+            <i class="fas fa-star" style="color: #ffdd00; margin-right: 10px;"></i> Saved Worlds
+        </div>
+        
+        <div class="grid" id="universe-grid">
+            <div class="loading-text"><i class="fas fa-spinner fa-spin"></i> Syncing with Database...</div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 🛡️ SECURITY GUARD & DATA FETCHER
+        // ==========================================
+        window.onload = () => {
+            const loggedInUser = localStorage.getItem("orbitx_premium_user");
+            
+            // 1. Agar login nahi hai, toh bahar nikalo
+            if (!loggedInUser) {
+                alert("⚠️ Access Denied! Please login to view your Universe.");
+                window.location.href = "index.html";
+                return;
+            }
+
+            // 2. Naam update karo
+            document.getElementById('display-name').innerText = loggedInUser;
+
+            // 3. Database se bookmarks fetch karo
+            fetchBookmarks(loggedInUser);
+        };
+
+        function fetchBookmarks(username) {
+            const grid = document.getElementById('universe-grid');
+
+            fetch('http://127.0.0.1:5000/api/my_bookmarks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: username })
+            })
+            .then(response => response.json())
+            .then(data => {
+                grid.innerHTML = ""; // Pehle "Syncing..." text hatao
+
+                if(data.status === "success") {
+                    const planets = data.data;
+
+                    // Agar ek bhi planet save nahi kiya hai
+                    if(planets.length === 0) {
+                        grid.innerHTML = `
+                            <div class="empty-text">
+                                <i class="fas fa-satellite-dish" style="font-size: 40px; color: #555; margin-bottom: 20px; display: block;"></i>
+                                Your universe is currently empty.<br>
+                                Explore the Solar System module and click the ⭐ Save button to bookmark planets here.
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    // Agar planets hain, toh unke cards banao
+                    planets.forEach(planetName => {
+                        const card = document.createElement('div');
+                        card.className = 'planet-card';
+                        
+                        // Icon change logic (Agar Sun hai toh suraj ka icon)
+                        let iconClass = "fas fa-globe";
+                        if(planetName.toLowerCase().includes("sun")) iconClass = "fas fa-sun";
+
+                        card.innerHTML = `
+                            <i class="${iconClass} planet-icon"></i>
+                            <div class="planet-name">${planetName}</div>
+                            <div class="planet-tag">Database Secured</div>
+                        `;
+                        grid.appendChild(card);
+                    });
+
+                } else {
+                    grid.innerHTML = `<div class="empty-text" style="color: #ff4444;">Error: ${data.message}</div>`;
+                }
+            })
+            .catch(error => {
+                grid.innerHTML = `<div class="empty-text" style="color: #ff4444;">⚠️ Unable to connect to Database Server! Make sure your Python backend is running.</div>`;
+                console.error("Fetch Error:", error);
+            });
+        }
+    </script>
+</body>
+</html>
