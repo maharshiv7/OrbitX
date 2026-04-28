@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OrbitX - NEO Threat Matrix</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        body { margin: 0; background-color: #020202; font-family: 'Courier New', Courier, monospace; color: white; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        #top-navbar { width: 100%; background: rgba(10, 15, 25, 0.9); border-bottom: 1px solid rgba(255, 170, 0, 0.3); display: flex; justify-content: space-between; align-items: center; padding: 15px 50px; box-sizing: border-box; }
+        .nav-logo { color: #ffaa00; font-size: 24px; font-weight: bold; text-decoration: none; letter-spacing: 3px; }
+        .back-btn { background: transparent; border: 1px solid #ffaa00; color: #ffaa00; padding: 8px 15px; border-radius: 5px; cursor: pointer; text-decoration: none; transition: 0.3s; }
+        .back-btn:hover { background: rgba(255, 170, 0, 0.2); }
+        
+        .container { width: 90%; max-width: 800px; margin-top: 50px; }
+        .header-title { font-size: 2rem; color: #ffaa00; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 15px rgba(255, 170, 0, 0.5); border-bottom: 1px solid #333; padding-bottom: 15px; margin-bottom: 30px; }
+        
+        .asteroid-card { background: rgba(15, 20, 30, 0.8); border: 1px solid #333; padding: 20px; margin-bottom: 15px; border-radius: 8px; position: relative; overflow: hidden; }
+        .safe { border-left: 5px solid #00ffcc; }
+        .hazard { border-left: 5px solid #ff003c; animation: threatPulse 1.5s infinite; }
+        
+        @keyframes threatPulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 0, 60, 0.3); }
+            70% { box-shadow: 0 0 15px 10px rgba(255, 0, 60, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 0, 60, 0); }
+        }
+
+        .ast-name { font-size: 1.5rem; font-weight: bold; margin-bottom: 10px; }
+        .safe .ast-name { color: #00ffcc; }
+        .hazard .ast-name { color: #ff003c; }
+        .ast-details { color: #aaa; line-height: 1.6; }
+        .loader { color: #ffaa00; font-size: 1.2rem; margin-top: 50px; text-align: center; animation: blink 1s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+    </style>
+</head>
+<body>
+
+    <nav id="top-navbar">
+        <a href="index.html" class="nav-logo">OrbitX // NEO Radar</a>
+        <a href="index.html#menu" class="back-btn">⬅ RETURN TO TERMINAL</a>
+    </nav>
+
+    <div class="container">
+        <h1 class="header-title">> NEAR-EARTH OBJECT THREAT MATRIX</h1>
+        <div id="neo-data-container">
+            <div class="loader">> INTERCEPTING NASA TELEMETRY...</div>
+        </div>
+    </div>
+
+    <script>
+        window.onload = () => {
+            fetch('http://127.0.0.1:5000/api/neo')
+                .then(response => response.json())
+                .then(res => {
+                    const container = document.getElementById('neo-data-container');
+                    container.innerHTML = ''; 
+
+                    if(res.status === "error") {
+                        container.innerHTML = `<span style="color: red;">> ${res.message}</span>`;
+                        return;
+                    }
+
+                    res.data.forEach(ast => {
+                        let threatClass = ast.hazardous ? 'hazard' : 'safe';
+                        let threatLabel = ast.hazardous ? '<span style="color:#ff003c">[ WARNING: POTENTIALLY HAZARDOUS ]</span>' : '<span style="color:#00ffcc">[ STATUS: SAFE ]</span>';
+
+                        let card = `
+                            <div class="asteroid-card ${threatClass}">
+                                <div class="ast-name">TARGET: ${ast.name}</div>
+                                <div class="ast-details">
+                                    > THREAT LEVEL: ${threatLabel}<br>
+                                    > MAX DIAMETER: ${ast.size_meters} meters<br>
+                                    > VELOCITY: ${ast.speed_kmh} km/h<br>
+                                    > MISS DISTANCE: ${ast.miss_distance_km} km
+                                </div>
+                            </div>
+                        `;
+                        container.innerHTML += card;
+                    });
+                })
+                .catch(err => {
+                    document.getElementById('neo-data-container').innerHTML = `<span style="color: red;">> SYSTEM ERROR: UNABLE TO CONNECT TO RADAR.</span>`;
+                });
+        };
+    </script>
+</body>
+</html>
