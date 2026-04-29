@@ -90,6 +90,37 @@ def get_neo():
         print(f"Error fetching NEO data: {e}")
         return jsonify({"status": "error", "message": "Failed to decrypt NASA transmission."})
 
+@app.route('/api/solar_weather')
+def get_solar_weather():
+    # Pichle 30 din ka data fetch karenge kyunki CME roz nahi aate
+    end_date = datetime.today().strftime('%Y-%m-%d')
+    start_date = (datetime.today() - timedelta(days=30)).strftime('%Y-%m-%d')
+    url = f"https://api.nasa.gov/DONKI/CME?startDate={start_date}&endDate={end_date}&api_key=DEMO_KEY"
+    
+    try:
+        response = requests.get(url, timeout=10)
+        data = response.json()
+        
+        cme_events = []
+        # Check if data is a list (API returns list of events)
+        if isinstance(data, list):
+            # Sirf latest 5 events uthayenge
+            for obj in data[-5:]:
+                cme_events.append({
+                    'activityID': obj.get('activityID', 'UNKNOWN_ID'),
+                    'startTime': obj.get('startTime', 'UNKNOWN_TIME').replace('T', ' | HOUR: '),
+                    'note': obj.get('note', 'No detailed transmission available.')[:150] + '...', # Shorten the text
+                    'instruments': [inst['displayName'] for inst in obj.get('instruments', [{'displayName': 'UNKNOWN'}])]
+                })
+        
+        # Latest event sabse upar dikhane ke liye reverse kiya
+        cme_events = cme_events[::-1]
+        return jsonify({"status": "success", "data": cme_events})
+
+    except Exception as e:
+        print(f"Error fetching DONKI data: {e}")
+        return jsonify({"status": "error", "message": "Failed to intercept Solar Telemetry. Shields status unknown."})
+
 # ==========================================
 # 🛡️ AUTHENTICATION ROUTES (UPDATED)
 # ==========================================
