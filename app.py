@@ -3,6 +3,7 @@ from flask_cors import CORS
 import requests
 import mysql.connector
 from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime  
 
 # 🟢 1. App Initialization (Sirf EK baar)
 app = Flask(__name__)
@@ -33,7 +34,6 @@ def load_exoplanet_data():
     global exoplanet_db
     print("Fetching massive Exoplanet Data from NASA... Please wait.")
     try:
-        # 🟢 FIX: 'disc_year' spelling update
         url = "https://exoplanetarchive.ipac.caltech.edu/TAP/sync?query=select+pl_name,sy_dist,pl_rade,disc_year+from+ps+where+default_flag=1&format=json"        
         response = requests.get(url, timeout=15)
         response.raise_for_status() 
@@ -45,25 +45,53 @@ def load_exoplanet_data():
                     "name": planet['pl_name'],
                     "distance_ly": round(planet['sy_dist'] * 3.262, 2),
                     "radius_earth": round(planet['pl_rade'], 2),
-                    "year": planet.get('disc_year', 'Unknown') # 🟢 FIX: discoveryyear se disc_year kiya
+                    "year": planet.get('disc_year', 'Unknown') 
                 })
         print(f"✅ Success! {len(exoplanet_db)} Exoplanets loaded from NASA.")
         
     except Exception as e:
         print(f"❌ NASA API Failed: {e}")
         print("⚠️ Loading OrbitX Offline Backup Database...")
-        # Fallback backup database
         exoplanet_db.extend([
             {"name": "Proxima Centauri b", "distance_ly": 4.24, "radius_earth": 1.03, "year": 2016},
             {"name": "TRAPPIST-1 e", "distance_ly": 39.46, "radius_earth": 0.92, "year": 2017},
             {"name": "Kepler-452 b", "distance_ly": 1799.0, "radius_earth": 1.63, "year": 2015}
         ])
 
-# Data load karein
 load_exoplanet_data()
 
 # ==========================================
-# 🛡️ AUTHENTICATION ROUTES
+# ☄️ NEO (NEAR-EARTH OBJECT) RADAR ENGINE 
+# ==========================================
+@app.route('/api/neo')
+def get_neo():
+    today = datetime.today().strftime('%Y-%m-%d')
+    url = f"https://api.nasa.gov/neo/rest/v1/feed?start_date={today}&end_date={today}&api_key=DEMO_KEY"
+    
+    try:
+        response = requests.get(url, timeout=10)
+        data = response.json()
+        
+        asteroids = []
+        if 'near_earth_objects' in data:
+            for obj in data['near_earth_objects'][today]:
+                asteroids.append({
+                    'name': obj['name'],
+                    'hazardous': obj['is_potentially_hazardous_asteroid'],
+                    'size_meters': round(obj['estimated_diameter']['meters']['estimated_diameter_max'], 2),
+                    'speed_kmh': round(float(obj['close_approach_data'][0]['relative_velocity']['kilometers_per_hour']), 2),
+                    'miss_distance_km': round(float(obj['close_approach_data'][0]['miss_distance']['kilometers']), 2)
+                })
+        
+        asteroids = sorted(asteroids, key=lambda x: x['hazardous'], reverse=True)
+        return jsonify({"status": "success", "data": asteroids})
+
+    except Exception as e:
+        print(f"Error fetching NEO data: {e}")
+        return jsonify({"status": "error", "message": "Failed to decrypt NASA transmission."})
+
+# ==========================================
+# 🛡️ AUTHENTICATION ROUTES (UPDATED)
 # ==========================================
 @app.route('/')
 def home():
@@ -72,10 +100,15 @@ def home():
 @app.route('/api/signup', methods=['POST'])
 def signup():
     data = request.json
-    username, email, password = data.get('username'), data.get('email'), data.get('password')
+    username = data.get('username')
+    email = data.get('email')
+    password = data.get('password')
+    q1 = data.get('q1')
+    q2 = data.get('q2')
+    q3 = data.get('q3')
     
-    if not all([username, email, password]):
-        return jsonify({"status": "error", "message": "All fields are required!"})
+    if not all([username, email, password, q1, q2, q3]):
+        return jsonify({"status": "error", "message": "All fields including security coordinates are required!"})
 
     conn = get_db_connection()
     if not conn: return jsonify({"status": "error", "message": "Database server down!"})
@@ -83,11 +116,14 @@ def signup():
     try:
         cursor = conn.cursor()
         hashed_pw = generate_password_hash(password)
-        cursor.execute("INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s)", (username, email, hashed_pw))
+        cursor.execute(
+            "INSERT INTO users (username, email, password_hash, q1_constellation, q2_mission, q3_nebula) VALUES (%s, %s, %s, %s, %s, %s)", 
+            (username, email, hashed_pw, q1.lower(), q2.lower(), q3.lower())
+        )
         conn.commit()
-        return jsonify({"status": "success", "message": "User registered successfully!"})
+        return jsonify({"status": "success", "message": "Agent registered with Tactical Override enabled."})
     except mysql.connector.Error as err:
-        return jsonify({"status": "error", "message": "Username/Email already exists or DB Error!"})
+        return jsonify({"status": "error", "message": "Username/Email already exists!"})
     finally:
         conn.close()
 
@@ -107,6 +143,37 @@ def login():
         if user and check_password_hash(user['password_hash'], password):
             return jsonify({"status": "success", "username": user['username'], "message": "Welcome back!"})
         return jsonify({"status": "error", "message": "Invalid Email or Password!"})
+    finally:
+        conn.close()
+
+@app.route('/api/reset_password', methods=['POST'])
+def reset_password():
+    data = request.json
+    email = data.get('email')
+    new_password = data.get('new_password')
+    q1 = data.get('q1').lower() if data.get('q1') else ''
+    q2 = data.get('q2').lower() if data.get('q2') else ''
+    q3 = data.get('q3').lower() if data.get('q3') else ''
+
+    if not all([email, new_password, q1, q2, q3]):
+        return jsonify({"status": "error", "message": "All coordinates are required for Tactical Override!"})
+
+    conn = get_db_connection()
+    if not conn: return jsonify({"status": "error", "message": "Database server down!"})
+    
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM users WHERE email = %s AND q1_constellation = %s AND q2_mission = %s AND q3_nebula = %s", 
+                       (email, q1, q2, q3))
+        user = cursor.fetchone()
+        
+        if user:
+            hashed_pw = generate_password_hash(new_password)
+            cursor.execute("UPDATE users SET password_hash = %s WHERE email = %s", (hashed_pw, email))
+            conn.commit()
+            return jsonify({"status": "success", "message": "Override Successful. Password Decrypted and Updated."})
+        else:
+            return jsonify({"status": "error", "message": "TACTICAL OVERRIDE FAILED. Incorrect Coordinates."})
     finally:
         conn.close()
 
@@ -136,7 +203,6 @@ def predict_iss_location():
         if not target_time:
             return jsonify({"status": "error", "message": "Time nahi mila bhai!"})
         
-        # NASA/Wheretheiss API for historical and future ISS data
         url = f"https://api.wheretheiss.at/v1/satellites/25544/positions?timestamps={target_time}"
         response = requests.get(url, timeout=10)
         data = response.json()
@@ -168,12 +234,10 @@ def save_bookmark():
     
     try:
         cursor = conn.cursor()
-        # Database mein save karo
         cursor.execute("INSERT INTO bookmarks (username, planet_name) VALUES (%s, %s)", (username, planet_name))
         conn.commit()
         return jsonify({"status": "success", "message": f"{planet_name} added to your Universe!"})
     except mysql.connector.IntegrityError:
-        # Agar pehle se save hai (UNIQUE KEY trigger hogi)
         return jsonify({"status": "error", "message": "Already saved in your Universe!"})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
@@ -193,7 +257,6 @@ def my_bookmarks():
         cursor.execute("SELECT planet_name FROM bookmarks WHERE username = %s", (username,))
         saved_planets = cursor.fetchall()
         
-        # List of planet names nikalna
         planet_names = [p['planet_name'] for p in saved_planets]
         return jsonify({"status": "success", "data": planet_names})
     except Exception as e:
@@ -206,7 +269,6 @@ def my_bookmarks():
 # ==========================================
 @app.route('/api/classified')
 def get_classified_files():
-    # Yeh data ab server par safe hai
     secret_files = [
         {
             "id": "wow-signal",
@@ -216,9 +278,7 @@ def get_classified_files():
             "date": "August 15, 1977",
             "origin": "Sagittarius Constellation",
             "content": """
-                <p>On August 15, 1977, the Big Ear radio telescope intercepted a strong narrowband radio signal. It lasted for exactly 72 seconds. The astronomer on duty, Jerry R. Ehman, was so shocked that he wrote "Wow!" on the computer printout.</p>
-                <p>The signal originated from <span class="redacted">empty space</span> in the constellation Sagittarius. Despite decades of searching, the signal has <span class="redacted">never repeated</span>.</p>
-                <p><strong>ANALYSIS:</strong> The frequency was 1420.4056 MHz. This is the hydrogen line—the exact frequency that <span class="redacted">intelligent alien life</span> would logically use to communicate across the universe.</p>
+                <p>On August 15, 1977, the Big Ear radio telescope intercepted a strong narrowband radio signal...</p>
                 <p>Current Status: We are still listening. Something is out there.</p>
             """
         },
@@ -231,8 +291,6 @@ def get_classified_files():
             "origin": "Interstellar Space (Vega)",
             "content": """
                 <p>The first interstellar object detected passing through our Solar System. Officially classified as a comet, but its behavior defies known astrophysics.</p>
-                <p>As 'Oumuamua left our solar system, it suddenly <span class="redacted">accelerated</span> without emitting any gas or dust, violating gravity models. NASA officially denies it, but internal theories suggest it was an <span class="redacted">extraterrestrial solar sail</span> or a probe sent to map our system.</p>
-                <p><strong>NOTE:</strong> Trajectory suggests it came from the direction of Vega. By the time we pointed our advanced telescopes at it, it had already begun transmitting <span class="redacted">[DATA EXPUNGED]</span>.</p>
             """
         },
         {
@@ -244,9 +302,6 @@ def get_classified_files():
             "origin": "Zone of Avoidance",
             "content": """
                 <p>Our Milky Way galaxy is moving at 600 kilometers per second towards a massive, unseen region of space known as The Great Attractor.</p>
-                <p>It possesses the mass of tens of thousands of galaxies. The problem? It is located in the "Zone of Avoidance," obscured by our own galaxy's dust. We cannot see what is pulling us.</p>
-                <p>Recent deep-space infrared scans revealed <span class="redacted">massive structures</span> pulling entire superclusters towards a central point. Theories range from a super-massive black hole to a <span class="redacted">rip in the fabric of spacetime</span>.</p>
-                <p>We are being pulled into the dark.</p>
             """
         }
     ]
