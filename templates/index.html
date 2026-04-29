@@ -6,7 +6,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <title>Welcome to OrbitX</title>
     <style>
-        /* (Aapki purani CSS waisi hi hai) */
         body { margin: 0; overflow-x: hidden; overflow-y: auto; background-color: #020202; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: white; display: flex; flex-direction: column; min-height: 100vh; }
         canvas { display: block; position: fixed; top: 0; left: 0; z-index: 0; }
 
@@ -17,29 +16,12 @@
         .nav-links a:hover { background: rgba(255, 221, 0, 0.1); color: #ffdd00; }
         .nav-live { color: #ff4444 !important; font-weight: bold; border: 1px solid rgba(255, 68, 68, 0.3); animation: pulse-border 2s infinite; }
         
-        /* 🔴 THE PULSING DOT CSS */
-        .pulsing-dot {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            background-color: #ff4444;
-            border-radius: 50%;
-            margin-right: 8px;
-            box-shadow: 0 0 10px #ff4444;
-            animation: pulse-dot 1.5s infinite;
-        }
+        .pulsing-dot { display: inline-block; width: 10px; height: 10px; background-color: #ff4444; border-radius: 50%; margin-right: 8px; box-shadow: 0 0 10px #ff4444; animation: pulse-dot 1.5s infinite; }
+        @keyframes pulse-dot { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.7); } 70% { transform: scale(1.2); box-shadow: 0 0 0 10px rgba(255, 68, 68, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 68, 68, 0); } }
 
-        @keyframes pulse-dot {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.7); }
-            70% { transform: scale(1.2); box-shadow: 0 0 0 10px rgba(255, 68, 68, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 68, 68, 0); }
-        }
-
-        /* 🆕 AUTH BUTTON CSS */
         .auth-btn { background: linear-gradient(90deg, #00d2ff, #3a7bd5); color: #fff !important; font-weight: bold; border: none; padding: 8px 20px !important; border-radius: 20px !important; cursor: pointer; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; font-size: 13px; }
         .auth-btn:hover { box-shadow: 0 0 15px rgba(0, 210, 255, 0.6); transform: translateY(-2px); }
 
-        /* 🆕 AUTH MODAL (POPUP) CSS */
         #auth-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); display: flex; justify-content: center; align-items: center; z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
         #auth-modal.active { opacity: 1; pointer-events: auto; }
         .auth-box { background: rgba(15, 20, 30, 0.9); border: 1px solid #00d2ff; border-radius: 20px; padding: 40px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 0 30px rgba(0, 210, 255, 0.2); position: relative; transform: scale(0.9); transition: transform 0.3s ease; }
@@ -55,7 +37,6 @@
         .toggle-text span { color: #00d2ff; text-decoration: underline; }
         #auth-msg { margin-top: 15px; font-size: 13px; font-weight: bold; }
 
-        /* ... (Landing page & cards CSS same as before) ... */
         #ui-layer { position: relative; flex-grow: 1; width: 100%; z-index: 10; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 1s ease-in-out; }
         #landing-screen { display: flex; flex-direction: column; align-items: center; text-align: center; width: 100%; height: 100vh; justify-content: center; cursor: pointer; transition: opacity 0.8s ease; }
         .main-title { font-size: 5rem; margin: 0; letter-spacing: 5px; font-weight: 800; text-transform: uppercase; background: linear-gradient(90deg, #00d2ff, #3a7bd5); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0px 0px 30px rgba(0, 210, 255, 0.4); }
@@ -90,7 +71,7 @@
     </style>
 </head>
 <body>
-    
+
     <nav id="top-navbar">
         <a href="index.html" class="nav-logo">OrbitX</a>
         <div class="nav-links">
@@ -101,6 +82,7 @@
         </div>
     </nav>
 
+    <!-- 🟢 UPDATED MODAL WITH OVERRIDE FIELDS -->
     <div id="auth-modal">
         <div class="auth-box">
             <span class="close-btn" onclick="closeModal()">&times;</span>
@@ -108,13 +90,26 @@
             
             <input type="text" id="auth-username" class="auth-input" placeholder="Desired Username" style="display: none;">
             <input type="email" id="auth-email" class="auth-input" placeholder="Email Address">
+            
+            <!-- TACTICAL OVERRIDE QUESTIONS -->
+            <div id="tactical-override-fields" style="display: none; text-align: left;">
+                <p style="color: #ffaa00; font-size: 11px; text-transform: uppercase; margin-bottom: 5px;">> Tactical Override Coordinates</p>
+                <input type="text" id="auth-q1" class="auth-input" placeholder="Q1: Favorite Constellation?">
+                <input type="text" id="auth-q2" class="auth-input" placeholder="Q2: Favorite Space Mission?">
+                <input type="text" id="auth-q3" class="auth-input" placeholder="Q3: Favorite Nebula?">
+            </div>
+
             <input type="password" id="auth-password" class="auth-input" placeholder="Password">
+            <input type="password" id="auth-new-password" class="auth-input" placeholder="Enter New Password" style="display: none; border-color: #ff4444;">
             
             <button class="auth-submit" id="auth-submit-btn" onclick="submitAuth()">Login</button>
             <div id="auth-msg"></div>
 
-            <div class="toggle-text" id="toggle-text" onclick="toggleMode()">
-                New to OrbitX? <span>Create an account</span>
+            <div class="toggle-text" id="toggle-text">
+                New to OrbitX? <span onclick="setAuthMode('signup')">Create an account</span>
+            </div>
+            <div class="toggle-text" id="forgot-pw-text" style="margin-top: 10px;">
+                Forgot Decryption Key? <span style="color: #ff4444;" onclick="setAuthMode('reset')">Initiate Override</span>
             </div>
         </div>
     </div>
@@ -148,7 +143,10 @@
                     </h3>
                     <p>Top Secret FBI/NASA dossiers. Cosmic anomalies and unsolved mysteries. <span id="class-premium-text" style="color: #aaa;">(Level 5 Access)</span></p>
                 </a>
-                
+                <a href="neo.html" class="module-card" style="border-color: rgba(255, 170, 0, 0.3);">
+                    <h3 style="color: #ffaa00;">NEO Radar</h3>
+                    <p>Live NASA telemetry. Track potentially hazardous asteroids approaching Earth in real-time.</p>
+                </a>
             </div>
         </div>
     </div>
@@ -198,16 +196,13 @@
         const mainMenu = document.getElementById('main-menu');
         const topNavbar = document.getElementById('top-navbar');
 
-        // ==========================================
-        // 🟢 NAYA LOGIC: DIRECT MENU PAR AANE KE LIYE
-        // ==========================================
         if (window.location.hash === '#menu') {
             landingScreen.style.display = 'none';
             mainMenu.style.display = 'flex';
             mainMenu.style.opacity = '1';
             topNavbar.style.opacity = '1';
             topNavbar.style.pointerEvents = 'auto';
-            warpSpeed = 0.1; // Stars ki speed bhi slow kar do
+            warpSpeed = 0.1; 
         }
 
         landingScreen.addEventListener('click', () => {
@@ -224,54 +219,62 @@
             }, 800); 
         });
 
-        // ==========================================
-        // 🔐 AUTHENTICATION JAVASCRIPT LOGIC
-        // ==========================================
-        let isLoginMode = true;
+        // 🟢 UPDATED AUTHENTICATION LOGIC WITH 3 STATES
+        let currentAuthMode = 'login'; 
 
-        function openModal() { document.getElementById('auth-modal').classList.add('active'); }
+        function openModal() { 
+            document.getElementById('auth-modal').classList.add('active'); 
+            setAuthMode('login');
+        }
         function closeModal() { 
             document.getElementById('auth-modal').classList.remove('active'); 
             document.getElementById('auth-msg').innerText = ""; 
         }
 
-        function toggleMode() {
-            isLoginMode = !isLoginMode;
+        function setAuthMode(mode) {
+            currentAuthMode = mode;
             document.getElementById('auth-msg').innerText = "";
-            if(isLoginMode) {
-                document.getElementById('auth-title').innerText = "Agent Login";
-                document.getElementById('auth-username').style.display = "none";
-                document.getElementById('auth-submit-btn').innerText = "Login";
-                document.getElementById('toggle-text').innerHTML = 'New to OrbitX? <span>Create an account</span>';
-            } else {
-                document.getElementById('auth-title').innerText = "Register Agent";
-                document.getElementById('auth-username').style.display = "block";
-                document.getElementById('auth-submit-btn').innerText = "Sign Up";
-                document.getElementById('toggle-text').innerHTML = 'Already registered? <span>Login here</span>';
-            }
-        }
+            
+            const title = document.getElementById('auth-title');
+            const username = document.getElementById('auth-username');
+            const password = document.getElementById('auth-password');
+            const newPassword = document.getElementById('auth-new-password');
+            const tactical = document.getElementById('tactical-override-fields');
+            const submitBtn = document.getElementById('auth-submit-btn');
+            const toggleText = document.getElementById('toggle-text');
+            const forgotText = document.getElementById('forgot-pw-text');
 
-        // 🔓 UNLOCK UI FUNCTION
-        // 🔓 UNLOCK UI FUNCTION (Updated for Classified Files)
-        function unlockPremiumUI() {
-            // Exoplanets wale locks
-            const exoLock = document.getElementById('exo-lock');
-            const exoText = document.getElementById('exo-premium-text');
-            if (exoLock) exoLock.style.display = 'none';
-            if (exoText) exoText.style.display = 'none';
-
-            // Classified Files wale locks
-            const classLock = document.getElementById('class-lock');
-            const classText = document.getElementById('class-premium-text');
-            if (classLock) classLock.style.display = 'none';
-            if (classText) classText.style.display = 'none';
-        }
-
-        // 🚪 LOGOUT FUNCTION
-        function logoutUser() {
-            if(confirm("Are you sure you want to log out from OrbitX, Agent?")) {
-                localStorage.removeItem("orbitx_premium_user"); // Memory clear
-                window.location.href = "index.html"; // Redirect without hash
+            if(mode === 'login') {
+                title.innerText = "Agent Login";
+                username.style.display = "none";
+                tactical.style.display = "none";
+                newPassword.style.display = "none";
+                password.style.display = "block";
+                submitBtn.innerText = "Login";
+                submitBtn.style.background = "#00d2ff";
+                toggleText.innerHTML = 'New to OrbitX? <span onclick="setAuthMode(\'signup\')">Create an account</span>';
+                forgotText.style.display = "block";
+            } else if(mode === 'signup') {
+                title.innerText = "Register Agent";
+                username.style.display = "block";
+                tactical.style.display = "block";
+                newPassword.style.display = "none";
+                password.style.display = "block";
+                submitBtn.innerText = "Sign Up";
+                submitBtn.style.background = "#00d2ff";
+                toggleText.innerHTML = 'Already registered? <span onclick="setAuthMode(\'login\')">Login here</span>';
+                forgotText.style.display = "none";
+            } else if(mode === 'reset') {
+                title.innerText = "Tactical Override";
+                title.style.color = "#ff4444";
+                username.style.display = "none";
+                password.style.display = "none";
+                tactical.style.display = "block";
+                newPassword.style.display = "block";
+                submitBtn.innerText = "Decrypt & Reset";
+                submitBtn.style.background = "#ffaa00";
+                toggleText.innerHTML = 'Remembered your key? <span onclick="setAuthMode(\'login\')">Back to Login</span>';
+                forgotText.style.display = "none";
             }
         }
 
@@ -279,13 +282,28 @@
             const username = document.getElementById('auth-username').value;
             const email = document.getElementById('auth-email').value;
             const password = document.getElementById('auth-password').value;
+            const newPassword = document.getElementById('auth-new-password').value;
+            const q1 = document.getElementById('auth-q1').value;
+            const q2 = document.getElementById('auth-q2').value;
+            const q3 = document.getElementById('auth-q3').value;
             const msgBox = document.getElementById('auth-msg');
 
             msgBox.style.color = "#ffdd00";
             msgBox.innerText = "Processing Data...";
 
-            const endpoint = isLoginMode ? '/api/login' : '/api/signup';
-            const payload = isLoginMode ? { email, password } : { username, email, password };
+            let endpoint = '';
+            let payload = {};
+
+            if(currentAuthMode === 'login') {
+                endpoint = '/api/login';
+                payload = { email, password };
+            } else if(currentAuthMode === 'signup') {
+                endpoint = '/api/signup';
+                payload = { username, email, password, q1, q2, q3 };
+            } else if(currentAuthMode === 'reset') {
+                endpoint = '/api/reset_password';
+                payload = { email, new_password: newPassword, q1, q2, q3 };
+            }
 
             fetch('http://127.0.0.1:5000' + endpoint, {
                 method: 'POST',
@@ -298,18 +316,19 @@
                     msgBox.style.color = "#00ff88"; 
                     msgBox.innerText = data.message;
                     
-                    if(isLoginMode) {
+                    if(currentAuthMode === 'login') {
                         localStorage.setItem("orbitx_premium_user", data.username);
-                        
                         document.getElementById('nav-auth-btn').innerHTML = "👤 " + data.username + " <span style='font-size:10px; color:#ff4444;'>(Logout)</span>";
                         document.getElementById('nav-auth-btn').style.background = "transparent";
                         document.getElementById('nav-auth-btn').style.border = "1px solid #00ff88";
                         document.getElementById('nav-auth-btn').onclick = logoutUser;
-                        
                         unlockPremiumUI();
                         setTimeout(closeModal, 1500); 
-                    } else {
-                        setTimeout(toggleMode, 2000); 
+                    } else if (currentAuthMode === 'signup' || currentAuthMode === 'reset') {
+                        setTimeout(() => {
+                            setAuthMode('login');
+                            document.getElementById('auth-title').style.color = "#00d2ff";
+                        }, 2000); 
                     }
                 } else {
                     msgBox.style.color = "#ff4444"; 
@@ -323,9 +342,25 @@
             });
         }
 
-        // ==========================================
-        // 🛡️ PREMIUM ROUTE GUARD
-        // ==========================================
+        function unlockPremiumUI() {
+            const exoLock = document.getElementById('exo-lock');
+            const exoText = document.getElementById('exo-premium-text');
+            if (exoLock) exoLock.style.display = 'none';
+            if (exoText) exoText.style.display = 'none';
+
+            const classLock = document.getElementById('class-lock');
+            const classText = document.getElementById('class-premium-text');
+            if (classLock) classLock.style.display = 'none';
+            if (classText) classText.style.display = 'none';
+        }
+
+        function logoutUser() {
+            if(confirm("Are you sure you want to log out from OrbitX, Agent?")) {
+                localStorage.removeItem("orbitx_premium_user");
+                window.location.href = "index.html"; 
+            }
+        }
+
         function checkPremiumAccess(targetUrl, event) {
             event.preventDefault(); 
             const loggedInUser = localStorage.getItem("orbitx_premium_user");
